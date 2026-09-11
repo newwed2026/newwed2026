@@ -1,0 +1,11 @@
+import { describe,expect,it } from "vitest";
+import { resolveCheckoutStatus } from "@/features/billing/payment-state";
+
+describe("eventos financeiros fora de ordem",() => {
+  it("não rebaixa um pagamento confirmado por evento atrasado",() => {
+    expect(resolveCheckoutStatus("PAID","PAYMENT_OVERDUE")).toBe("PAID");
+    expect(resolveCheckoutStatus("PAID","PAYMENT_DELETED")).toBe("PAID");
+  });
+  it("aceita confirmação duplicada sem alterar o estado",() => expect(resolveCheckoutStatus("PAID","PAYMENT_CONFIRMED")).toBe("PAID"));
+  it("permite estorno após confirmação",() => expect(resolveCheckoutStatus("PAID","PAYMENT_REFUNDED")).toBe("REFUNDED"));
+});

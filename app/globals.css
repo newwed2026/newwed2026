@@ -1,0 +1,143 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "../src";
+@source "../app";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'DM Sans', sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-bord: var(--bord);
+  --color-bord-light: var(--bord-light);
+  --color-cream: var(--cream);
+  --color-cream-mid: var(--cream-mid);
+  --color-dark: var(--dark);
+  --color-dark2: var(--dark2);
+  --color-green: var(--green);
+  --color-gold: var(--gold);
+  --color-smoke: var(--smoke);
+  --color-primary: var(--bord);
+  --color-primary-foreground: var(--cream);
+  --color-border: var(--border);
+  --color-muted: var(--dark2);
+  --color-muted-foreground: var(--smoke);
+  --color-card: var(--dark2);
+  --color-card-foreground: var(--cream);
+  --color-input: var(--border);
+  --color-ring: var(--bord);
+  --color-accent: var(--bord);
+  --color-accent-foreground: var(--cream);
+  --color-popover: var(--dark2);
+  --color-popover-foreground: var(--cream);
+  --color-secondary: var(--dark2);
+  --color-secondary-foreground: var(--cream);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: var(--cream);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+}
+
+:root {
+  --bord: oklch(0.36 0.12 15);
+  --bord-light: oklch(0.44 0.13 15);
+  --cream: oklch(0.965 0.012 70);
+  --cream-mid: oklch(0.92 0.014 70);
+  --dark: oklch(0.14 0.012 40);
+  --dark2: oklch(0.20 0.014 40);
+  --green: oklch(0.30 0.045 165);
+  --gold: oklch(0.70 0.12 80);
+  --smoke: oklch(0.965 0.012 70 / 0.55);
+  --background: var(--dark);
+  --foreground: var(--cream);
+  --border: oklch(1 0 0 / 0.08);
+  --radius: 3px;
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--color-dark);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .serif { font-family: var(--font-serif); }
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--color-smoke);
+    font-weight: 300;
+  }
+  .eyebrow-dark {
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: oklch(0.20 0.014 40 / 0.5);
+    font-weight: 300;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s;
+    padding: 11px 24px;
+    font-weight: 400;
+  }
+  .btn-solid { background: var(--color-bord); color: var(--color-cream); }
+  .btn-solid:hover { background: var(--color-bord-light); }
+  .btn-outline-light { border: 0.5px solid oklch(0.965 0.012 70 / 0.35); color: var(--color-cream); }
+  .btn-outline-light:hover { border-color: var(--color-cream); background: oklch(0.965 0.012 70 / 0.06); }
+  .btn-outline-dark { border: 0.5px solid oklch(0.20 0.014 40 / 0.4); color: var(--color-dark); }
+  .btn-outline-dark:hover { border-color: var(--color-dark); background: oklch(0.20 0.014 40 / 0.05); }
+  .btn-white { background: var(--color-cream); color: var(--color-bord); }
+  .btn-white:hover { background: var(--color-cream-mid); }
+  .badge-pill {
+    display: inline-block;
+    background: var(--color-bord);
+    color: var(--color-cream);
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 400;
+  }
+  .sec-title {
+    font-family: var(--font-serif);
+    font-size: clamp(28px, 3.5vw, 48px);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.005em;
+  }
+  .sec-title em { font-style: italic; opacity: 0.75; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes slowZoom {
+  0% { transform: scale(1.05); }
+  100% { transform: scale(1.18); }
+}
+.animate-fade-up { animation: fadeUp 0.9s ease forwards; }
+.animate-ticker { animation: ticker 40s linear infinite; }
+.animate-slow-zoom { animation: slowZoom 18s ease-in-out infinite alternate; }
