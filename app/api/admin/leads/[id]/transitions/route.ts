@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { transitionSchema } from "@/features/leads/schemas";
 import { canManuallyTransition, pipelineStageSchema } from "@/features/pipeline/model";
 import { requireAccessUser } from "@/server/auth/access";
+import { cancelCheckoutReservationsForLead } from "@/server/checkout-processing";
 import { errorResponse, HttpError, json } from "@/server/http";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if ((updated.meta.changes ?? 0) !== 1) {
         throw new HttpError(409,"PIPELINE_CONFLICT","O lead foi alterado por outra operação. Atualize a tela e tente novamente.");
       }
+      if (input.stage === "CANCELADO") await cancelCheckoutReservationsForLead(env,id);
     }
     return json({ leadId: id, from, stage: input.stage, changed: from !== input.stage });
   } catch (error) { return errorResponse(error); }

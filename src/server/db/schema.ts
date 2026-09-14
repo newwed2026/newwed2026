@@ -186,6 +186,10 @@ export const checkouts = sqliteTable("checkouts", {
   cancelledAt: text("cancelled_at"),
   refundedAt: text("refunded_at"),
   reservationReleasedAt: text("reservation_released_at"),
+  processingToken: text("processing_token"),
+  processingStartedAt: text("processing_started_at"),
+  retryCount: integer("retry_count").notNull().default(0),
+  nextRetryAt: text("next_retry_at"),
   version: integer("version").notNull().default(1),
   ...timestamps,
 }, (table) => [
@@ -226,8 +230,14 @@ export const webhookEvents = sqliteTable("webhook_events", {
   payloadJson: text("payload_json").notNull(),
   processedAt: text("processed_at"),
   error: text("error"),
+  attempts: integer("attempts").notNull().default(0),
+  lastAttemptAt: text("last_attempt_at"),
+  nextRetryAt: text("next_retry_at"),
   createdAt: text("created_at").notNull(),
-}, (table) => [uniqueIndex("webhook_provider_external_uidx").on(table.provider, table.externalId)]);
+}, (table) => [
+  uniqueIndex("webhook_provider_external_uidx").on(table.provider, table.externalId),
+  index("webhook_pending_retry_idx").on(table.provider, table.processedAt, table.nextRetryAt),
+]);
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -301,9 +311,11 @@ export const outboxEvents = sqliteTable("outbox_events", {
   id: text("id").primaryKey(),
   type: text("type").notNull(),
   aggregateId: text("aggregate_id").notNull(),
+  dedupeKey: text("dedupe_key").unique(),
   payloadJson: text("payload_json").notNull(),
   attempts: integer("attempts").notNull().default(0),
   publishedAt: text("published_at"),
+  nextAttemptAt: text("next_attempt_at"),
   lastError: text("last_error"),
   createdAt: text("created_at").notNull(),
-});
+}, (table) => [index("outbox_pending_idx").on(table.publishedAt, table.nextAttemptAt, table.createdAt)]);

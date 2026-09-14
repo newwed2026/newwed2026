@@ -13,8 +13,8 @@ describe("máquina de estado do checkout",() => {
     expect(canTransitionCheckout("SENT","PAID")).toBe(true);
   });
 
-  it("impede atalhos e regressões inválidas",() => {
-    expect(() => assertCheckoutTransition("CREATING","PAID")).toThrow("Transição de checkout inválida");
+  it("aceita eventos financeiros fora de ordem e impede regressões",() => {
+    expect(() => assertCheckoutTransition("CREATING","PAID")).not.toThrow();
     expect(() => assertCheckoutTransition("PENDING","READY")).toThrow("Transição de checkout inválida");
   });
 

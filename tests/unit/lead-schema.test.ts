@@ -1,5 +1,5 @@
 import { describe,expect,it } from "vitest";
-import { publicLeadSchema,transitionSchema } from "@/features/leads/schemas";
+import { checkoutSchema,publicLeadSchema,transitionSchema } from "@/features/leads/schemas";
 
 const valid = {
   nome:"Maria da Silva",email:"maria@example.com",telefone:"81999990000",empresa:"Assessoria Maria",cidade_estado:"Recife, PE",
@@ -26,4 +26,11 @@ describe("contrato de transição comercial",() => {
   it("não exige motivo para uma etapa operacional",() => {
     expect(transitionSchema.safeParse({ stage:"EM_ATENDIMENTO" }).success).toBe(true);
   });
+});
+
+describe("contrato de checkout",() => {
+  const checkout = { editionId:"edition-1",priceBatchId:"price-1",method:"CREDIT_CARD" as const };
+  it("usa uma parcela como padrão",() => expect(checkoutSchema.parse(checkout).installmentCount).toBe(1));
+  it("aceita cartão até 12 vezes",() => expect(checkoutSchema.safeParse({ ...checkout,installmentCount:12 }).success).toBe(true));
+  it("rejeita Pix parcelado",() => expect(checkoutSchema.safeParse({ ...checkout,method:"PIX",installmentCount:2 }).success).toBe(false));
 });

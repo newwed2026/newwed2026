@@ -8,4 +8,9 @@ describe("eventos financeiros fora de ordem",() => {
   });
   it("aceita confirmação duplicada sem alterar o estado",() => expect(resolveCheckoutStatus("PAID","PAYMENT_CONFIRMED")).toBe("PAID"));
   it("permite estorno após confirmação",() => expect(resolveCheckoutStatus("PAID","PAYMENT_REFUNDED")).toBe("REFUNDED"));
+  it("não confunde cobrança pendente com checkout enviado",() => {
+    expect(resolveCheckoutStatus("CREATING","PAYMENT_PENDING")).toBe("CREATING");
+    expect(resolveCheckoutStatus("READY","PAYMENT_PENDING")).toBe("READY");
+  });
+  it("aceita pagamento confirmado antes do envio",() => expect(resolveCheckoutStatus("READY","PAYMENT_RECEIVED")).toBe("PAID"));
 });

@@ -59,6 +59,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:d1:wave2": "bash scripts/test-wave2-d1.sh",
     "test:visual": "playwright test tests/visual/parity.spec.ts",
     "baseline:capture": "UPDATE_BASELINES=1 playwright test tests/visual/parity.spec.ts",
     "baseline:capture:target": "UPDATE_BASELINES=1 BASELINE_CAPTURE_TARGET=1 playwright test tests/visual/parity.spec.ts",

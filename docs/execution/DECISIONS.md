@@ -55,3 +55,15 @@ Usar `@cloudflare/vitest-plugin`, integração oficial vigente para Vitest 5 e r
 ## D-014 — Compatibilidade temporária da conversa
 
 `conversations.mode` (`AGENT` ou `HUMAN`) é o estado autoritativo novo. `human_active` permanece durante a transição para não quebrar o worker anterior e será removido após todos os consumidores usarem `mode` na Onda 3.
+
+## D-015 — Checkout assíncrono e recuperável
+
+A API apenas reserva a vaga e persiste checkout/outbox, retornando `202`. A Queue consulta o Asaas por `externalReference` antes de criar a cobrança. Leases, backoff e outbox permitem retomar falhas sem repetir a cobrança.
+
+## D-016 — Aceite, entrega e pagamento são eventos distintos
+
+`READY` indica cobrança válida; `SENT` e `CHECKOUT_ENVIADO` exigem aceite da Meta; `PENDING` e `AGUARDANDO_PAGAMENTO` exigem entrega Meta ou marcação humana auditada. Somente evento financeiro conciliado gera `PAGO`.
+
+## D-017 — Cancelamento encerra cobranças abertas
+
+Expiração ou cancelamento libera a reserva local e agenda a remoção da cobrança no Asaas. Cobrança única usa `/payments/:id`; parcelamento remove cobranças pendentes/vencidas por `/installments/:id/payments`. Uma confirmação financeira observada durante a corrida prevalece e volta à conciliação de capacidade.

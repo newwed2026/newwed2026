@@ -100,20 +100,21 @@ function LeadCard({lead,onClick}:{lead:Lead;onClick:()=>void}) {
 function DetailPanel({detail,onClose,onTransition,onRefresh}:{detail:Detail;onClose:()=>void;onTransition:(stage:Stage)=>Promise<void>;onRefresh:()=>Promise<void>}) {
   const lead = detail.lead;
   const [users,setUsers] = useState<Array<{id:string;name:string}>>([]);
-  const [editions,setEditions] = useState<Array<{id:string;price_batch_id:string;price_batch_name:string;amount_cents:number}>>([]);
+  const [editions,setEditions] = useState<Array<{id:string;price_batch_id:string;price_batch_name:string;amount_cents:number;installment_count:number}>>([]);
   const [assignee,setAssignee] = useState("");
   const [task,setTask] = useState("");
   const [method,setMethod] = useState<"PIX"|"CREDIT_CARD">("PIX");
+  const [installmentCount,setInstallmentCount] = useState(1);
   const [notice,setNotice] = useState("");
-  useEffect(() => { Promise.all([api<{users:Array<{id:string;name:string}>}>("/api/admin/users"),api<{editions:Array<{id:string;price_batch_id:string;price_batch_name:string;amount_cents:number}>}>("/api/catalog/editions")]).then(([people,catalog]) => { setUsers(people.users);setEditions(catalog.editions); }).catch(() => undefined); },[]);
+  useEffect(() => { Promise.all([api<{users:Array<{id:string;name:string}>}>("/api/admin/users"),api<{editions:Array<{id:string;price_batch_id:string;price_batch_name:string;amount_cents:number;installment_count:number}>}>("/api/catalog/editions")]).then(([people,catalog]) => { setUsers(people.users);setEditions(catalog.editions); }).catch(() => undefined); },[]);
   const assign = async () => { if (!assignee) return; await api(`/api/admin/leads/${lead.id}/assign`,{method:"POST",body:JSON.stringify({userId:assignee})});setNotice("Responsável atualizado.");await onRefresh(); };
   const createTask = async () => { if (!task.trim()) return; await api(`/api/admin/leads/${lead.id}/activities`,{method:"POST",body:JSON.stringify({title:task})});setTask("");setNotice("Tarefa criada.");await onRefresh(); };
   const createCheckout = async () => {
     const offer = editions.find((edition) => edition.id === lead.edition_id);
     if (!offer) { setNotice("Não há lote ativo para esta edição.");return; }
     try {
-      const result = await api<{url:string}>(`/api/admin/leads/${lead.id}/checkouts`,{method:"POST",headers:{"Idempotency-Key":crypto.randomUUID()},body:JSON.stringify({editionId:offer.id,priceBatchId:offer.price_batch_id,method})});
-      setNotice(`Checkout criado: ${result.url}`);await onRefresh();
+      const result = await api<{checkoutId:string;status:string}>(`/api/admin/leads/${lead.id}/checkouts`,{method:"POST",headers:{"Idempotency-Key":crypto.randomUUID()},body:JSON.stringify({editionId:offer.id,priceBatchId:offer.price_batch_id,method,installmentCount:method === "PIX" ? 1 : installmentCount})});
+      setNotice(`Checkout ${result.checkoutId} reservado e em processamento.`);await onRefresh();
     } catch (reason) { setNotice(reason instanceof Error ? reason.message : "Não foi possível criar o checkout."); }
   };
   return <div className="fixed inset-0 z-50 flex justify-end bg-black/45" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
@@ -127,7 +128,7 @@ function DetailPanel({detail,onClose,onTransition,onRefresh}:{detail:Detail;onCl
           <div><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Responsável</h3><div className="flex gap-2"><select value={assignee} onChange={(event) => setAssignee(event.target.value)} className="min-w-0 flex-1 border border-black/15 bg-white px-3 py-2 text-xs"><option value="">Selecionar</option>{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={assign} className="bg-[#191010] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Atribuir</button></div></div>
           <div><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Nova tarefa</h3><div className="flex gap-2"><input value={task} onChange={(event) => setTask(event.target.value)} placeholder="Ex.: Retornar amanhã" className="min-w-0 flex-1 border border-black/15 px-3 py-2 text-xs"/><button onClick={createTask} className="bg-[#191010] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Criar</button></div></div>
         </section>
-        <section className="border border-[#7A2535]/25 bg-[#7A2535]/[0.04] p-5"><h3 className="text-[10px] uppercase tracking-[0.2em] text-[#7A2535]">Checkout autorizado</h3><p className="mt-2 text-xs text-black/55">Disponível somente para gestores e administradores quando o lead estiver qualificado.</p><div className="mt-4 flex flex-wrap gap-2"><select value={method} onChange={(event) => setMethod(event.target.value as "PIX"|"CREDIT_CARD")} className="border border-black/15 bg-white px-3 py-2 text-xs"><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select><button onClick={createCheckout} disabled={lead.stage !== "QUALIFICADO"} className="bg-[#7A2535] px-4 py-2 text-[9px] uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:opacity-35">Criar checkout</button></div></section>
+        <section className="border border-[#7A2535]/25 bg-[#7A2535]/[0.04] p-5"><h3 className="text-[10px] uppercase tracking-[0.2em] text-[#7A2535]">Checkout autorizado</h3><p className="mt-2 text-xs text-black/55">Disponível somente para gestores e administradores quando o lead estiver qualificado. A cobrança e o envio são processados em segundo plano.</p><div className="mt-4 flex flex-wrap gap-2"><select value={method} onChange={(event) => { const next = event.target.value as "PIX"|"CREDIT_CARD";setMethod(next);if (next === "PIX") setInstallmentCount(1); }} className="border border-black/15 bg-white px-3 py-2 text-xs"><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select>{method === "CREDIT_CARD" && <select aria-label="Parcelas" value={installmentCount} onChange={(event) => setInstallmentCount(Number(event.target.value))} className="border border-black/15 bg-white px-3 py-2 text-xs">{Array.from({length:Math.max(1,editions.find((edition) => edition.id === lead.edition_id)?.installment_count ?? 1)},(_,index) => index + 1).map((count) => <option key={count} value={count}>{count}x</option>)}</select>}<button onClick={createCheckout} disabled={lead.stage !== "QUALIFICADO"} className="bg-[#7A2535] px-4 py-2 text-[9px] uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:opacity-35">Criar checkout</button></div></section>
         <Timeline title="Timeline" rows={detail.history} primary="to_stage" secondary="reason"/>
         <Timeline title="Tarefas e atividades" rows={detail.activities} primary="title" secondary="body"/>
         <Timeline title="Conversas" rows={detail.conversations} primary="channel" secondary="external_id"/>

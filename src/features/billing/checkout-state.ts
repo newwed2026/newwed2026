@@ -16,14 +16,14 @@ export const checkoutStateSchema = z.enum([
 export type CheckoutState = z.infer<typeof checkoutStateSchema>;
 
 const transitions: Record<CheckoutState, readonly CheckoutState[]> = {
-  CREATING: ["READY", "FAILED", "CANCELLED"],
-  READY: ["SEND_PENDING", "FAILED", "CANCELLED"],
-  SEND_PENDING: ["SENT", "FAILED", "CANCELLED"],
-  SENT: ["PENDING", "PAID", "FAILED", "OVERDUE", "CANCELLED"],
-  PENDING: ["PAID", "OVERDUE", "CANCELLED"],
+  CREATING: ["READY", "PAID", "FAILED", "OVERDUE", "CANCELLED", "REFUNDED"],
+  READY: ["SEND_PENDING", "PAID", "FAILED", "OVERDUE", "CANCELLED", "REFUNDED"],
+  SEND_PENDING: ["SENT", "PAID", "FAILED", "OVERDUE", "CANCELLED", "REFUNDED"],
+  SENT: ["PENDING", "PAID", "FAILED", "OVERDUE", "CANCELLED", "REFUNDED"],
+  PENDING: ["PAID", "OVERDUE", "CANCELLED", "REFUNDED"],
   PAID: ["REFUNDED"],
   FAILED: ["CREATING", "SEND_PENDING", "CANCELLED"],
-  OVERDUE: ["PAID", "CANCELLED"],
+  OVERDUE: ["PAID", "CANCELLED", "REFUNDED"],
   CANCELLED: [],
   REFUNDED: [],
 };
