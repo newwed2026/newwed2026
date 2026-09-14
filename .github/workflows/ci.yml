@@ -20,6 +20,10 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:d1:wave2
+      - run: npm run test:d1:wave3
+      - run: npm run test:d1:wave4
+      - run: npm run test:workers
       - run: npm run build
       - run: npm run test:visual
       - name: Upload visual failure evidence

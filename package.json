@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.54.7",
+    "@cloudflare/vitest-plugin": "^1.1.9",
     "@eslint/js": "9.35.0",
     "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "4.3.3",
@@ -45,7 +46,7 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.43.0",
     "vite": "8.3.0",
-    "vitest": "5.0.0",
+    "vitest": "^4.1.11",
     "wrangler": "4.131.0"
   },
   "type": "module",
@@ -62,6 +63,8 @@
     "test:d1:wave2": "bash scripts/test-wave2-d1.sh",
     "test:d1:wave3": "bash scripts/test-wave3-d1.sh",
     "test:d1:wave4": "bash scripts/test-wave4-d1.sh",
+    "test:workers": "vitest run --config vitest.worker.config.ts",
+    "preflight:launch": "node scripts/preflight-launch.mjs",
     "test:visual": "playwright test tests/visual/parity.spec.ts",
     "baseline:capture": "UPDATE_BASELINES=1 playwright test tests/visual/parity.spec.ts",
     "baseline:capture:target": "UPDATE_BASELINES=1 BASELINE_CAPTURE_TARGET=1 playwright test tests/visual/parity.spec.ts",
