@@ -5,7 +5,9 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
 const update = process.env.UPDATE_BASELINES === "1";
+const captureTarget = process.env.BASELINE_CAPTURE_TARGET === "1";
 const portableComparison = process.platform === "linux";
+const baselineRoot = portableComparison ? "tests/visual/baselines-linux" : "tests/visual/baselines";
 const pixelThreshold = portableComparison ? 0.12 : 0;
 const maxDiffPixelRatio = portableComparison ? 0.025 : 0;
 const maxBlockMeanError = portableComparison ? 0.008 : 0;
@@ -76,10 +78,11 @@ for (const [viewportName,width,height] of viewports) {
     test(`${viewportName} · ${name}`,async ({ page }) => {
       await page.setViewportSize({ width,height });
       await page.emulateMedia({ reducedMotion:"reduce" });
-      await page.goto(update ? source : `http://localhost:4173${target}`,{ waitUntil:"load" });
+      const url = update && !captureTarget ? source : `http://localhost:4173${target}`;
+      await page.goto(url,{ waitUntil:"load" });
       await settle(page);
       const actual = await page.screenshot({ fullPage:true,animations:"disabled" });
-      const baselinePath = resolve("tests/visual/baselines",viewportName,`${name}.png`);
+      const baselinePath = resolve(baselineRoot,viewportName,`${name}.png`);
       if (update) {
         await mkdir(dirname(baselinePath),{ recursive:true });
         await writeFile(baselinePath,actual);

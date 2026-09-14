@@ -21,13 +21,13 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - run: npm run test:visual
-      - name: Upload visual failure evidence
-        if: failure()
+      - run: npm run baseline:capture:target
+      - name: Upload Linux visual baselines
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: visual-failure-${{ github.run_id }}
-          path: test-results/visual
+          name: visual-linux-baselines-${{ github.run_id }}
+          path: tests/visual/baselines-linux
           if-no-files-found: ignore
           retention-days: 7
       - run: npm audit --omit=dev --audit-level=high
