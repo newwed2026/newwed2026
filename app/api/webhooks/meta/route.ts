@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { hmacSha256Hex, timingSafeEqual } from "@/server/crypto";
 import { errorResponse, HttpError, json } from "@/server/http";
+import { publishOutbox } from "@/server/outbox";
 import { getSecrets } from "@/server/secrets";
 
 export async function GET(request: Request) {
@@ -30,12 +31,21 @@ export async function POST(request: Request) {
         const messages = (value?.messages as Array<Record<string, unknown>> | undefined) ?? [];
         const statuses = (value?.statuses as Array<Record<string, unknown>> | undefined) ?? [];
         for (const event of [...messages, ...statuses]) {
-          const externalId = String(event.id ?? `${entry.id}:${event.timestamp ?? crypto.randomUUID()}`);
+          const isMessage = messages.includes(event);
+          const providerEventId = String(event.id ?? `${entry.id}:${event.timestamp ?? crypto.randomUUID()}`);
+          const externalId = isMessage ? `message:${providerEventId}` : `status:${providerEventId}:${String(event.status ?? "unknown")}`;
           const now = new Date().toISOString();
-          const inserted = await env.DB.prepare("INSERT OR IGNORE INTO webhook_events (id,provider,external_id,event_type,payload_json,created_at) VALUES (?,'meta',?,?,?,?)")
-            .bind(crypto.randomUUID(),externalId,messages.includes(event) ? "message" : "status",JSON.stringify({ event, metadata: value?.metadata, contacts: value?.contacts }),now).run();
-          if (inserted.meta.changes) {
-            await env.EVENTS_QUEUE.send({ type: messages.includes(event) ? "whatsapp.incoming" : "whatsapp.status", externalId });
+          const outboxId = crypto.randomUUID();
+          const type = isMessage ? "whatsapp.incoming" : "whatsapp.status";
+          await env.DB.batch([
+            env.DB.prepare("INSERT OR IGNORE INTO webhook_events (id,provider,external_id,event_type,payload_json,created_at) VALUES (?,'meta',?,?,?,?)")
+              .bind(crypto.randomUUID(),externalId,isMessage ? "message" : "status",JSON.stringify({ event,metadata:value?.metadata,contacts:value?.contacts }),now),
+            env.DB.prepare("INSERT OR IGNORE INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,created_at) SELECT ?,?,?,?, ?,0,? WHERE changes()=1")
+              .bind(outboxId,type,externalId,`meta.webhook:${externalId}`,JSON.stringify({ externalId }),now),
+          ]);
+          const pending = await env.DB.prepare("SELECT id,published_at FROM outbox_events WHERE dedupe_key=?")
+            .bind(`meta.webhook:${externalId}`).first<{ id:string;published_at:string|null }>();
+          if (pending && !pending.published_at && await publishOutbox(env,{ id:pending.id,type,externalId })) {
             queued += 1;
           }
         }

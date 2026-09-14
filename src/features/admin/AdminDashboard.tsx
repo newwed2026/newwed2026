@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Columns3, List, RefreshCw, Search, X } from "lucide-react";
+import { Columns3,List,MessageSquare,RefreshCw,Search,X } from "lucide-react";
+import { AdminInbox } from "@/features/admin/AdminInbox";
 import { canManuallyTransition } from "@/features/pipeline/model";
 
 const stages = ["NOVO","EM_ATENDIMENTO","QUALIFICADO","CHECKOUT_ENVIADO","AGUARDANDO_PAGAMENTO","PAGO","NUTRICAO","PERDIDO","CANCELADO"] as const;
@@ -22,6 +23,7 @@ export function AdminDashboard() {
   const [leads,setLeads] = useState<Lead[]>([]);
   const [query,setQuery] = useState("");
   const [view,setView] = useState<"kanban"|"list">("kanban");
+  const [workspace,setWorkspace] = useState<"pipeline"|"inbox">("pipeline");
   const [selected,setSelected] = useState<Detail|null>(null);
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState("");
@@ -68,13 +70,13 @@ export function AdminDashboard() {
       <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-5">
         <div><div className="serif text-xl tracking-[0.18em]">NEW WED</div><div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-white/45">Comercial</div></div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setView("kanban")} aria-label="Kanban" className={`p-2 ${view === "kanban" ? "bg-white text-[#191010]" : "text-white/65"}`}><Columns3 size={18}/></button>
-          <button onClick={() => setView("list")} aria-label="Lista" className={`p-2 ${view === "list" ? "bg-white text-[#191010]" : "text-white/65"}`}><List size={18}/></button>
-          <button onClick={load} aria-label="Atualizar" className="p-2 text-white/65 hover:text-white"><RefreshCw size={18}/></button>
+          <button onClick={() => setWorkspace("pipeline")} aria-label="Pipeline" className={`flex items-center gap-2 px-3 py-2 text-[9px] uppercase tracking-[0.12em] ${workspace === "pipeline" ? "bg-white text-[#191010]" : "text-white/65"}`}><Columns3 size={16}/> Pipeline</button>
+          <button onClick={() => setWorkspace("inbox")} aria-label="Inbox" className={`flex items-center gap-2 px-3 py-2 text-[9px] uppercase tracking-[0.12em] ${workspace === "inbox" ? "bg-white text-[#191010]" : "text-white/65"}`}><MessageSquare size={16}/> Inbox</button>
+          {workspace === "pipeline" && <><button onClick={() => setView("kanban")} aria-label="Kanban" className={`p-2 ${view === "kanban" ? "text-white" : "text-white/45"}`}><Columns3 size={17}/></button><button onClick={() => setView("list")} aria-label="Lista" className={`p-2 ${view === "list" ? "text-white" : "text-white/45"}`}><List size={17}/></button><button onClick={load} aria-label="Atualizar" className="p-2 text-white/65 hover:text-white"><RefreshCw size={17}/></button></>}
         </div>
       </div>
     </header>
-    <section className="mx-auto max-w-[1600px] px-5 py-7 md:px-8">
+    {workspace === "inbox" ? <AdminInbox/> : <section className="mx-auto max-w-[1600px] px-5 py-7 md:px-8">
       <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div><p className="text-[9px] uppercase tracking-[0.24em] text-[#2E8E8E]">Pipeline</p><h1 className="serif mt-2 text-4xl font-light md:text-5xl">Relacionamentos em movimento.</h1></div>
         <label className="flex min-w-72 items-center gap-3 border-b border-black/20 py-2"><Search size={16} className="text-black/40"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nome, e-mail ou telefone" className="w-full bg-transparent text-sm outline-none"/></label>
@@ -86,8 +88,8 @@ export function AdminDashboard() {
           <div className="space-y-2">{grouped[stage].map((lead) => <LeadCard key={lead.id} lead={lead} onClick={() => openLead(lead.id)}/>)}</div>
         </section>)}</div> :
         <div className="overflow-x-auto border border-black/10 bg-white"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-black/10 text-[9px] uppercase tracking-[0.18em] text-black/45"><tr><th className="p-4">Lead</th><th className="p-4">Empresa</th><th className="p-4">Edição</th><th className="p-4">Etapa</th><th className="p-4">Entrada</th></tr></thead><tbody>{leads.map((lead) => <tr key={lead.id} onClick={() => openLead(lead.id)} className="cursor-pointer border-b border-black/5 hover:bg-[#F7F4EE]"><td className="p-4"><b className="font-medium">{lead.name}</b><div className="text-xs text-black/45">{lead.email}</div></td><td className="p-4">{lead.company || "—"}</td><td className="p-4">{lead.edition_name || "—"}</td><td className="p-4 text-xs uppercase">{stageLabel(lead.stage)}</td><td className="p-4">{new Date(lead.created_at).toLocaleDateString("pt-BR")}</td></tr>)}</tbody></table></div>}
-    </section>
-    {selected && <DetailPanel detail={selected} onClose={() => setSelected(null)} onTransition={transition} onRefresh={refreshSelected}/>} 
+    </section>}
+    {workspace === "pipeline" && selected && <DetailPanel detail={selected} onClose={() => setSelected(null)} onTransition={transition} onRefresh={refreshSelected}/>}
   </main>;
 }
 
