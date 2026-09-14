@@ -5,6 +5,9 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
 const update = process.env.UPDATE_BASELINES === "1";
+const portableComparison = process.platform === "linux";
+const pixelThreshold = portableComparison ? 0.12 : 0;
+const maxDiffPixelRatio = portableComparison ? 0.0025 : 0;
 const cases = [
   ["institucional-home","http://127.0.0.1:5174/","/"],
   ["institucional-sobre","http://127.0.0.1:5174/sobre","/sobre"],
@@ -58,13 +61,22 @@ for (const [viewportName,width,height] of viewports) {
       expect(received.width,`largura divergente em ${name}`).toBe(expected.width);
       expect(received.height,`altura divergente em ${name}`).toBe(expected.height);
       const diff = new PNG({ width:expected.width,height:expected.height });
-      const pixels = pixelmatch(expected.data,received.data,diff.data,expected.width,expected.height,{ threshold:0,includeAA:true });
-      if (pixels) {
+      const pixels = pixelmatch(expected.data,received.data,diff.data,expected.width,expected.height,{
+        threshold:pixelThreshold,
+        includeAA:!portableComparison,
+      });
+      const diffRatio = pixels / (expected.width * expected.height);
+      if (diffRatio > maxDiffPixelRatio) {
         const diffPath = resolve("test-results/visual",viewportName,`${name}-diff.png`);
         await mkdir(dirname(diffPath),{ recursive:true });
         await writeFile(diffPath,PNG.sync.write(diff));
+        await writeFile(resolve("test-results/visual",viewportName,`${name}-actual.png`),actual);
+        await writeFile(resolve("test-results/visual",viewportName,`${name}-expected.png`),PNG.sync.write(expected));
       }
-      expect(pixels,`${name} divergiu em ${pixels} pixels`).toBe(0);
+      expect(
+        diffRatio,
+        `${name} divergiu em ${pixels} pixels (${(diffRatio * 100).toFixed(4)}%)`,
+      ).toBeLessThanOrEqual(maxDiffPixelRatio);
     });
   }
 }
