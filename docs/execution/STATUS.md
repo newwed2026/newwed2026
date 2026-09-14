@@ -4,7 +4,7 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 0 — Controle, limpeza e CI.
+- Onda atual: 0 concluída localmente; integração e CI remoto pendentes.
 - Branch ativa: `codex/wave-0-ci-foundation`.
 - Base: `origin/main` em `85e8717`.
 - Dados legados: inexistentes; o projeto começa vazio.
@@ -18,19 +18,20 @@ Atualizado em: 2026-09-14
 - Dashboard comercial básico existente.
 - 20 testes unitários e 33 baselines visuais existentes.
 
-## Em andamento
+## Onda 0 concluída localmente
 
-- Fontes permanentes de contexto e protocolo de retomada.
-- Remoção das referências e do gerador de migração Base44.
-- Correção de imports de imagens incompatíveis com tipos limpos do vinext/Vite.
-- Estabilização dos testes visuais após hidratação.
+- Fontes permanentes de contexto e protocolo de retomada implantados.
+- Referências e gerador de migração Base44 removidos.
+- Contrato nativo `StaticImageData` estabilizado ao remover a declaração conflitante.
+- Geração de tipos isolada de `.dev.vars` e TypeScript isolado de artefatos gerados.
+- Modo de movimento reduzido estabiliza o carrossel e elimina mutações pré-hidratação.
+- Gate local aprovado: lint, tipos, 20 unitários, build, 33 visuais e auditoria.
 
 ## Próximas ações
 
-1. Executar gate completo da Onda 0.
-2. Corrigir qualquer regressão sem atualizar baselines por conveniência.
-3. Registrar `CP-00`, commit e resultado do CI remoto quando disponível.
-4. Iniciar Onda 1 em branch própria e aplicar uma única migration de domínio.
+1. Integrar a Onda 0 em `main`, publicar e acompanhar o CI remoto.
+2. Registrar a evidência remota no checkpoint se houver falha ou divergência.
+3. Iniciar Onda 1 em branch própria e aplicar uma única migration de domínio.
 
 ## Riscos e bloqueios atuais
 
