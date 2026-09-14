@@ -4,9 +4,9 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 3 concluída localmente; integração e CI remoto pendentes.
-- Branch ativa: `codex/wave-3-agent-inbox`.
-- Base: `main` em `ad13c7f`.
+- Onda atual: 4 concluída localmente; integração e CI remoto pendentes.
+- Branch ativa: `codex/wave-4-dashboard-observability`.
+- Base: `main` em `8a57a9f`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Ambientes externos: não configurados/autorizados nesta execução.
 
@@ -57,7 +57,7 @@ Atualizado em: 2026-09-14
 - PR `#3` integrada em `main` no commit `ad13c7f`.
 - CI remoto aprovado nas execuções `34855781328` (PR) e `34856140923` (`main`).
 
-## Onda 3 concluída localmente
+## Onda 3 concluída
 
 - Inbox operacional possui lista, busca, modos, filtro de falhas, transcript, resumo e estado do responsável.
 - APIs de listar/detalhar, assumir, devolver e responder foram implementadas com auditoria e idempotência.
@@ -69,12 +69,27 @@ Atualizado em: 2026-09-14
 - Resumos são atualizados por Queue a cada 10 mensagens; opt-out bloqueia agente, release e resposta manual.
 - Webhooks Meta usam outbox e IDs por evento/status, sem perder `sent`, `delivered` ou `read`.
 - Gate local aprovado: migration `0004` repetível, 58 unitários, teste D1, build, 33 visuais e auditoria.
+- PR `#4` integrada em `main` no commit `8a57a9f`.
+- CI remoto aprovado nas execuções `34858446009` (PR) e `34858840979` (`main`).
+
+## Onda 4 concluída localmente
+
+- Dashboard possui filtros de etapa, edição, responsável, origem, período e tarefas vencidas.
+- Tarefas possuem prazo, responsável, prioridade, conclusão/reabertura e auditoria.
+- Relatórios agregam funil, origem, edição, responsável, checkouts e pagamentos.
+- Central de notificações oferece leitura/não leitura e polling operacional.
+- Primeiro `PAGO` gera uma notificação deduplicada para o responsável ou fallback de gestores/admins.
+- E-mail HTML/texto usa binding `EMAIL`, outbox com retry e allowlists de remetente/destinatário.
+- `requestId` correlaciona lead, conversa, checkout, webhook, outbox e notificação.
+- Rate limits D1 cobrem formulário, resposta manual e checkout; webhooks têm assinatura, deduplicação e limite de payload.
+- Painel operacional consolida falhas de Queue, Meta, OpenAI, Asaas e e-mail.
+- Gate local aprovado: migration `0005` repetível, 64 unitários, testes D1 das ondas 2–4, build, 33 visuais e auditoria.
 
 ## Próximas ações
 
-1. Integrar a Onda 3 em `main` e confirmar o CI remoto.
-2. Iniciar Onda 4 por filtros/tarefas/relatórios e central de notificações.
-3. Ligar confirmação de `PAGO` ao dashboard e ao outbox de e-mail com deduplicação.
+1. Integrar a Onda 4 em `main` e confirmar o CI remoto.
+2. Iniciar Onda 5 com runtime Workers, bindings locais e provedores mockados.
+3. Criar E2E do fluxo UTM → `PAGO` → confirmação e preparar runbook de staging/piloto.
 
 ## Riscos e bloqueios atuais
 
