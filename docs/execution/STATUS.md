@@ -4,9 +4,9 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 2 concluída localmente; integração e CI remoto pendentes.
-- Branch ativa: `codex/wave-2-checkout-asaas`.
-- Base: `main` em `32aef27`.
+- Onda atual: 3 concluída localmente; integração e CI remoto pendentes.
+- Branch ativa: `codex/wave-3-agent-inbox`.
+- Base: `main` em `ad13c7f`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Ambientes externos: não configurados/autorizados nesta execução.
 
@@ -43,7 +43,7 @@ Atualizado em: 2026-09-14
 - PR `#2` integrada em `main` no commit `32aef27`.
 - CI remoto aprovado nas execuções `34851532033` (PR) e `34851855439` (`main`).
 
-## Onda 2 concluída localmente
+## Onda 2 concluída
 
 - Checkout agora reserva vaga, checkout, outbox, idempotência e auditoria atomicamente e retorna `202` em `CREATING`.
 - Queue recupera cobrança por `externalReference` antes de criar; falha após o Asaas é retomável sem duplicação.
@@ -54,12 +54,27 @@ Atualizado em: 2026-09-14
 - Expiração e cancelamento liberam a reserva e removem cobranças abertas no Asaas por Queue.
 - APIs de detalhe, envio/reenvio e entrega manual auditada foram implementadas.
 - Gate local aprovado: migration `0003` repetível, 47 unitários, teste D1, build, 33 visuais e auditoria.
+- PR `#3` integrada em `main` no commit `ad13c7f`.
+- CI remoto aprovado nas execuções `34855781328` (PR) e `34856140923` (`main`).
+
+## Onda 3 concluída localmente
+
+- Inbox operacional possui lista, busca, modos, filtro de falhas, transcript, resumo e estado do responsável.
+- APIs de listar/detalhar, assumir, devolver e responder foram implementadas com auditoria e idempotência.
+- Polling usa 5 segundos com a página visível e 30 segundos em segundo plano; WebSocket não foi adicionado.
+- Lease D1 bloqueia resposta humana enquanto uma resposta do agente está em voo e pausa o agente no claim.
+- Primeiro atendimento do agente ou humano move `NOVO` para `EM_ATENDIMENTO` uma única vez.
+- Contexto do agente vem do D1: resumo, 12 mensagens, lead, edição e catálogo; a OpenAI usa `store:false`.
+- Saída `{reply, confidence, handoff, reason}` é validada; intenção sensível, baixa confiança e falhas geram handoff.
+- Resumos são atualizados por Queue a cada 10 mensagens; opt-out bloqueia agente, release e resposta manual.
+- Webhooks Meta usam outbox e IDs por evento/status, sem perder `sent`, `delivered` ou `read`.
+- Gate local aprovado: migration `0004` repetível, 58 unitários, teste D1, build, 33 visuais e auditoria.
 
 ## Próximas ações
 
-1. Integrar a Onda 2 em `main` e confirmar o CI remoto.
-2. Iniciar Onda 3 pelas APIs de inbox, transcript, claim/release e mensagem manual.
-3. Substituir o fluxo legado do agente pelo contexto D1, exclusão mútua e resumo assíncrono.
+1. Integrar a Onda 3 em `main` e confirmar o CI remoto.
+2. Iniciar Onda 4 por filtros/tarefas/relatórios e central de notificações.
+3. Ligar confirmação de `PAGO` ao dashboard e ao outbox de e-mail com deduplicação.
 
 ## Riscos e bloqueios atuais
 
