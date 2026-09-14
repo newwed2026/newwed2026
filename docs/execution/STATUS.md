@@ -4,7 +4,7 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 1 — estados e confiabilidade do domínio.
+- Onda atual: 1 concluída localmente; integração e CI remoto pendentes.
 - Branch ativa: `codex/wave-1-domain-state`.
 - Base: `origin/main` em `a0450c3`.
 - Dados legados: inexistentes; o projeto começa vazio.
@@ -29,11 +29,23 @@ Atualizado em: 2026-09-14
 - Fontes web foram empacotadas e os 33 baselines passaram a ter variantes macOS e Linux.
 - CI remoto definitivo aprovado na execução `34849879987` para `a0450c3`.
 
+## Onda 1 concluída localmente
+
+- Migration `0002_nappy_tag.sql` adiciona estados, parcelamento, erros, timestamps, conversa e notificações.
+- Checkout possui máquina técnica explícita e eixos financeiro e de envio separados.
+- Conversa possui modo `AGENT`/`HUMAN`, claim/release, pausa, erro e resumo.
+- Mensagem de checkout fica vinculada à cobrança; parcelas possuem identificador, número e vencimento.
+- Notificações e destinatários possuem deduplicação no banco.
+- Etapas financeiras não podem ser aplicadas pela API manual.
+- `PERDIDO`/`CANCELADO` exigem motivo; `NUTRICAO` cria próxima ação com vencimento.
+- Atualização otimista evita histórico e auditoria falsos em concorrência.
+- Gate local aprovado: migration repetível, 31 unitários, build, 33 visuais e auditoria.
+
 ## Próximas ações
 
-1. Aplicar uma única migration para estados de checkout, parcelamento, conversa e notificações.
-2. Implementar as máquinas de estado e as invariantes de transição manual.
-3. Cobrir estados, validações e repetição segura de migrations com testes estreitos.
+1. Integrar a Onda 1 em `main` e confirmar o CI remoto.
+2. Iniciar Onda 2 com reserva e criação assíncrona de checkout via outbox/Queue.
+3. Implementar idempotência Asaas por `externalReference` e envio somente após `READY`.
 
 ## Riscos e bloqueios atuais
 
