@@ -4,9 +4,9 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 5 concluída localmente; integração e CI remoto pendentes.
-- Branch ativa: `codex/wave-5-e2e-launch`.
-- Base: `main` em `4c4069d`.
+- Onda atual: ondas 0–5 concluídas e integradas.
+- Branch operacional: `main`.
+- Entrega funcional: `main` em `0c79d94`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Ambientes externos: não configurados/autorizados nesta execução.
 
@@ -87,7 +87,7 @@ Atualizado em: 2026-09-14
 - PR `#5` integrada em `main` no commit `4c4069d`.
 - CI remoto aprovado nas execuções `34861800501` (PR) e `34862179558` (`main`).
 
-## Onda 5 concluída localmente
+## Onda 5 concluída
 
 - Testes E2E usam o runtime Workers com D1, Queue e R2 reais locais; `.dev.vars` não é carregado.
 - Meta, OpenAI, Asaas e e-mail são os únicos serviços mockados nos cenários automatizados.
@@ -97,11 +97,13 @@ Atualizado em: 2026-09-14
 - CI agora inclui as três baterias D1 e a suíte Workers.
 - Preflight e runbooks documentam configuração externa, staging, rollback e piloto de uma edição.
 - Gate local aprovado: 64 unitários, 18 invariantes D1, 6 cenários Workers, build, 33 visuais e auditoria.
+- PR `#6` integrada em `main` no commit `0c79d94`.
+- CI remoto aprovado nas execuções `34864371156` (PR) e `34864801713` (`main`).
 
 ## Próximas ações
 
-1. Integrar a Onda 5 em `main` e confirmar o CI remoto ampliado.
-2. Provisionar recursos e credenciais de staging e substituir os IDs marcadores.
+1. Provisionar recursos e credenciais de staging e substituir os IDs marcadores.
+2. Aprovar o preflight e aplicar migrations `0000`–`0005` em staging.
 3. Com autorização específica, publicar staging, executar sandbox real e pilotar uma edição.
 
 ## Riscos e bloqueios atuais
