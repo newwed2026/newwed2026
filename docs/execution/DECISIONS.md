@@ -42,7 +42,7 @@ Testes automatizados mockam apenas Meta, OpenAI, Asaas e e-mail. Nenhuma mensage
 
 ## D-011 — Testes Workers atuais
 
-Usar `@cloudflare/vitest-plugin`, integração oficial vigente para Vitest 5 e runtime Workers, em vez do pacote legado `@cloudflare/vitest-pool-workers`.
+Usar `@cloudflare/vitest-plugin`, integração oficial para o runtime Workers, em vez do pacote legado `@cloudflare/vitest-pool-workers`. A versão `1.1.9` exige Vitest `^4.1.0`; portanto o projeto fixa Vitest `4.1.x` até que o contrato oficial aceite uma versão posterior. A configuração de teste usa bindings Miniflare explícitos e nunca carrega `.dev.vars`.
 
 ## D-012 — Estado do checkout em três eixos
 
@@ -87,3 +87,11 @@ Cada entrada pública, autorização de checkout e webhook recebe `requestId`, d
 ## D-022 — Restrições de e-mail
 
 O Worker de eventos aceita somente o remetente `marketing@newwed.com.br` e, até o provisionamento operacional, os dois destinatários públicos conhecidos. A allowlist deve ser substituída pelos usuários aprovados antes do piloto; destinatários fora dela falham de forma visível e retomável pela outbox.
+
+## D-023 — Eventos financeiros fora de ordem
+
+`REFUNDED` é terminal na conciliação local. Um pagamento já `PAID` não pode regredir por eventos posteriores `PENDING`, `OVERDUE` ou `CANCELLED`; somente um estorno explícito o altera. Isso vale tanto para webhooks quanto para snapshots recuperados durante a criação.
+
+## D-024 — Lançamento exige gate humano
+
+O código pode preparar e validar estaticamente staging/produção, mas não cria recursos, publica Workers nem gera tráfego de Meta, Asaas ou e-mail. Esses passos exigem IDs/credenciais externos e autorização específica registrada para a janela de validação ou piloto.
