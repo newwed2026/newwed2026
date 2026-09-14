@@ -8,6 +8,7 @@
   "vars": {
     "ENVIRONMENT": "development",
     "OPENAI_MODEL": "gpt-5-mini",
+    "ASAAS_API_URL": "https://api-sandbox.asaas.com/v3",
     "META_GRAPH_VERSION": "v23.0",
     "META_CHECKOUT_TEMPLATE": "checkout_famtour"
   },
@@ -19,7 +20,7 @@
   "triggers": { "crons": ["*/5 * * * *"] },
   "env": {
     "staging": {
-      "vars": { "ENVIRONMENT": "staging", "OPENAI_MODEL": "gpt-5-mini", "META_GRAPH_VERSION": "v23.0", "META_CHECKOUT_TEMPLATE": "checkout_famtour" },
+      "vars": { "ENVIRONMENT": "staging", "OPENAI_MODEL": "gpt-5-mini", "ASAAS_API_URL": "https://api-sandbox.asaas.com/v3", "META_GRAPH_VERSION": "v23.0", "META_CHECKOUT_TEMPLATE": "checkout_famtour" },
       "d1_databases": [{ "binding": "DB", "database_name": "new-wed-platform-staging", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
       "queues": {
         "producers": [{ "binding": "EVENTS_QUEUE", "queue": "new-wed-events-staging" }],
@@ -27,7 +28,7 @@
       }
     },
     "production": {
-      "vars": { "ENVIRONMENT": "production", "OPENAI_MODEL": "gpt-5-mini", "META_GRAPH_VERSION": "v23.0", "META_CHECKOUT_TEMPLATE": "checkout_famtour" },
+      "vars": { "ENVIRONMENT": "production", "OPENAI_MODEL": "gpt-5-mini", "ASAAS_API_URL": "https://api.asaas.com/v3", "META_GRAPH_VERSION": "v23.0", "META_CHECKOUT_TEMPLATE": "checkout_famtour" },
       "d1_databases": [{ "binding": "DB", "database_name": "new-wed-platform-production", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
       "queues": {
         "producers": [{ "binding": "EVENTS_QUEUE", "queue": "new-wed-events-production" }],

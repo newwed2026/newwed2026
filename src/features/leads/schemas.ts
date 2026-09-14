@@ -59,5 +59,10 @@ export const checkoutSchema = z.object({
   editionId: z.string().min(1),
   priceBatchId: z.string().min(1),
   method: z.enum(["PIX", "CREDIT_CARD"]),
+  installmentCount: z.number().int().min(1).max(12).default(1),
   dueDate: z.string().date().optional(),
+}).strict().superRefine((input,context) => {
+  if (input.method === "PIX" && input.installmentCount !== 1) {
+    context.addIssue({ code:"custom",path:["installmentCount"],message:"Pix deve ser cobrado em uma única parcela." });
+  }
 });
