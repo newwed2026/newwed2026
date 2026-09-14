@@ -15,6 +15,13 @@
       "when": 1789133215754,
       "tag": "0001_steep_maria_hill",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789393333897,
+      "tag": "0002_nappy_tag",
+      "breakpoints": true
     }
   ]
 }

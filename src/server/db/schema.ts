@@ -119,14 +119,29 @@ export const conversations = sqliteTable("conversations", {
   leadId: text("lead_id").references(() => leads.id),
   channel: text("channel").notNull(),
   externalId: text("external_id").notNull(),
+  mode: text("mode").notNull().default("AGENT"),
   humanActive: integer("human_active", { mode: "boolean" }).notNull().default(false),
+  claimedBy: text("claimed_by").references(() => users.id),
+  claimedAt: text("claimed_at"),
+  releasedAt: text("released_at"),
+  agentPausedAt: text("agent_paused_at"),
+  agentError: text("agent_error"),
+  summary: text("summary"),
+  summarizedMessageCount: integer("summarized_message_count").notNull().default(0),
+  summaryUpdatedAt: text("summary_updated_at"),
+  lastMessageAt: text("last_message_at"),
   optedOutAt: text("opted_out_at"),
   ...timestamps,
-}, (table) => [uniqueIndex("conversation_external_uidx").on(table.channel, table.externalId)]);
+}, (table) => [
+  uniqueIndex("conversation_external_uidx").on(table.channel, table.externalId),
+  index("conversations_mode_updated_idx").on(table.mode, table.updatedAt),
+  index("conversations_claimed_by_idx").on(table.claimedBy),
+]);
 
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   conversationId: text("conversation_id").notNull().references(() => conversations.id),
+  checkoutId: text("checkout_id").references(() => checkouts.id),
   externalId: text("external_id"),
   direction: text("direction").notNull(),
   type: text("type").notNull(),
@@ -135,7 +150,10 @@ export const messages = sqliteTable("messages", {
   templateName: text("template_name"),
   payloadJson: text("payload_json"),
   createdAt: text("created_at").notNull(),
-}, (table) => [uniqueIndex("messages_external_uidx").on(table.externalId)]);
+}, (table) => [
+  uniqueIndex("messages_external_uidx").on(table.externalId),
+  index("messages_checkout_idx").on(table.checkoutId),
+]);
 
 export const checkouts = sqliteTable("checkouts", {
   id: text("id").primaryKey(),
@@ -145,21 +163,47 @@ export const checkouts = sqliteTable("checkouts", {
   provider: text("provider").notNull().default("asaas"),
   providerCustomerId: text("provider_customer_id"),
   providerPaymentId: text("provider_payment_id"),
+  providerInstallmentId: text("provider_installment_id"),
   method: text("method").notNull(),
+  installmentCount: integer("installment_count").notNull().default(1),
   amountCents: integer("amount_cents").notNull(),
   url: text("url"),
   status: text("status").notNull(),
+  financialStatus: text("financial_status").notNull().default("NOT_STARTED"),
+  sendStatus: text("send_status").notNull().default("NOT_REQUESTED"),
   idempotencyKey: text("idempotency_key").notNull().unique(),
   authorizedBy: text("authorized_by").notNull(),
+  expiresAt: text("expires_at"),
+  lastErrorCode: text("last_error_code"),
+  lastError: text("last_error"),
+  lastErrorAt: text("last_error_at"),
+  readyAt: text("ready_at"),
+  sendRequestedAt: text("send_requested_at"),
+  sentAt: text("sent_at"),
+  deliveredAt: text("delivered_at"),
+  pendingAt: text("pending_at"),
+  paidAt: text("paid_at"),
+  cancelledAt: text("cancelled_at"),
+  refundedAt: text("refunded_at"),
+  reservationReleasedAt: text("reservation_released_at"),
+  version: integer("version").notNull().default(1),
   ...timestamps,
-});
+}, (table) => [
+  index("checkouts_status_idx").on(table.status),
+  index("checkouts_financial_status_idx").on(table.financialStatus),
+  index("checkouts_send_status_idx").on(table.sendStatus),
+  index("checkouts_provider_installment_idx").on(table.providerInstallmentId),
+]);
 
 export const payments = sqliteTable("payments", {
   id: text("id").primaryKey(),
   checkoutId: text("checkout_id").notNull().references(() => checkouts.id),
   providerPaymentId: text("provider_payment_id").notNull().unique(),
+  providerInstallmentId: text("provider_installment_id"),
+  installmentNumber: integer("installment_number"),
   status: text("status").notNull(),
   amountCents: integer("amount_cents").notNull(),
+  dueDate: text("due_date"),
   paidAt: text("paid_at"),
   payloadJson: text("payload_json"),
   ...timestamps,
@@ -199,6 +243,39 @@ export const roles = sqliteTable("roles", {
   role: text("role").notNull(),
   createdAt: text("created_at").notNull(),
 }, (table) => [uniqueIndex("user_role_uidx").on(table.userId, table.role)]);
+
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  dedupeKey: text("dedupe_key").notNull().unique(),
+  payloadJson: text("payload_json"),
+  createdAt: text("created_at").notNull(),
+}, (table) => [
+  index("notifications_entity_idx").on(table.entityType, table.entityId),
+  index("notifications_created_at_idx").on(table.createdAt),
+]);
+
+export const notificationRecipients = sqliteTable("notification_recipients", {
+  id: text("id").primaryKey(),
+  notificationId: text("notification_id").notNull().references(() => notifications.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  channel: text("channel").notNull(),
+  deliveryStatus: text("delivery_status").notNull().default("PENDING"),
+  readAt: text("read_at"),
+  sentAt: text("sent_at"),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [
+  uniqueIndex("notification_recipient_channel_uidx").on(table.notificationId, table.userId, table.channel),
+  index("notification_recipients_user_read_idx").on(table.userId, table.readAt, table.createdAt),
+  index("notification_recipients_delivery_idx").on(table.deliveryStatus, table.updatedAt),
+]);
 
 export const auditLog = sqliteTable("audit_log", {
   id: text("id").primaryKey(),

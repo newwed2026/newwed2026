@@ -7,7 +7,7 @@
 | Tipos | TypeScript após `cf:types` | `npm run typecheck` | aprovado 2026-09-14 |
 | Domínio | pipeline e estados financeiros | `npm test` | 20/20 em 2026-09-14 |
 | Build | bundle vinext/Workers | `npm run build` | aprovado 2026-09-14 |
-| Visual | 11 páginas × 3 viewports, zero pixels | `npm run test:visual` | 33/33 em 2026-09-14 |
+| Visual | 11 páginas × 3 viewports, baselines macOS/Linux | `npm run test:visual` | 33/33 local e CI `34849879987` em 2026-09-14 |
 | Dependências | produção sem vulnerabilidades | `npm audit --omit=dev` | 0 em 2026-09-14 |
 | Migration | aplicação inicial e repetição segura | `npm run db:migrate:local` | Onda 1 |
 | Checkout | sucesso, duplicidade, última vaga e falha externa | integração Workers | Onda 2 |
