@@ -203,7 +203,7 @@ export function PreInscricaoForm({
   const submitLead = async (data: PreInscricaoData) => {
     setPending(true);
     try {
-      // Resolve the famtour slug-id that will be sent to Base44
+      // Resolve a edição que será persistida como origem comercial do lead.
       const resolvedFamtourId = showFamtourSelector
         ? data.famtour_id
         : (famtours[0]?.id ?? "");

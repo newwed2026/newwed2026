@@ -25,7 +25,8 @@ const viewports = [
 ] as const;
 
 async function settle(page: import("@playwright/test").Page) {
-  await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}" });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(250);
   await page.evaluate(async () => {
     for (const image of Array.from(document.images)) image.loading = "eager";
     await Promise.race([document.fonts.ready,new Promise((resolve) => setTimeout(resolve,3000))]);
@@ -42,6 +43,7 @@ for (const [viewportName,width,height] of viewports) {
   for (const [name,source,target] of cases) {
     test(`${viewportName} · ${name}`,async ({ page }) => {
       await page.setViewportSize({ width,height });
+      await page.emulateMedia({ reducedMotion:"reduce" });
       await page.goto(update ? source : `http://localhost:4173${target}`,{ waitUntil:"load" });
       await settle(page);
       const actual = await page.screenshot({ fullPage:true,animations:"disabled" });

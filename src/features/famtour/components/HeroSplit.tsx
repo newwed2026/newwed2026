@@ -33,7 +33,7 @@ export function HeroSplit({ onCta }: { onCta: () => void }) {
   };
 
   useEffect(() => {
-    if (SLIDES.length <= 1) return;
+    if (SLIDES.length <= 1 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     resetTimer();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
