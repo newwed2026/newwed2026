@@ -30,4 +30,4 @@ O formulário grava o lead e um evento de outbox antes de tentar publicar na Que
 
 ## Paridade visual
 
-As 33 imagens em `tests/visual/baselines` foram capturadas dos servidores originais em 390×844, 768×1024 e 1440×900. O teste desliga animações, força imagens lazy a carregar e exige zero pixels diferentes. Atualizar baselines é uma ação deliberada com `npm run baseline:capture`, nunca parte automática do CI.
+As 33 imagens em `tests/visual/baselines` foram capturadas dos servidores originais em 390×844, 768×1024 e 1440×900. O teste desliga animações, força imagens lazy a carregar e exige zero pixels diferentes na plataforma de captura. No runner Linux, diferenças de antialiasing e gerenciamento de cor são ignoradas e o limite residual é 0,25%; dimensões continuam exatas. Falhas remotas preservam imagem atual, esperada e diff como artefato. Atualizar baselines é uma ação deliberada com `npm run baseline:capture`, nunca parte automática do CI.
