@@ -12,7 +12,7 @@ import {
   type AsaasPaymentSnapshot,
 } from "@/server/integrations/asaas";
 import { applyAsaasPayment,asaasStatusEvent,normalizeAsaasPaymentStatus } from "@/server/integrations/asaas-payment";
-import { sendCheckoutTemplate } from "@/server/integrations/meta";
+import { sendCheckoutTemplate,type MetaFetcher } from "@/server/integrations/meta";
 import { deferOutbox,publishOutbox } from "@/server/outbox";
 import type { RuntimeSecrets } from "@/server/secrets";
 
@@ -72,7 +72,7 @@ export function validateAsaasPaymentSeries(input: {
 
 function paymentStatement(env: Pick<Env,"DB">,checkoutId: string,payment: AsaasPaymentSnapshot,now: string) {
   return env.DB.prepare(`INSERT INTO payments (id,checkout_id,provider_payment_id,provider_installment_id,installment_number,status,amount_cents,due_date,paid_at,payload_json,created_at,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(provider_payment_id) DO UPDATE SET provider_installment_id=excluded.provider_installment_id,installment_number=excluded.installment_number,status=excluded.status,amount_cents=excluded.amount_cents,due_date=excluded.due_date,paid_at=coalesce(excluded.paid_at,payments.paid_at),payload_json=excluded.payload_json,updated_at=excluded.updated_at`)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(provider_payment_id) DO UPDATE SET provider_installment_id=excluded.provider_installment_id,installment_number=excluded.installment_number,status=CASE WHEN payments.status='REFUNDED' THEN payments.status WHEN payments.status='PAID' AND excluded.status IN ('PENDING','OVERDUE','CANCELLED') THEN payments.status ELSE excluded.status END,amount_cents=excluded.amount_cents,due_date=excluded.due_date,paid_at=coalesce(excluded.paid_at,payments.paid_at),payload_json=excluded.payload_json,updated_at=excluded.updated_at`)
     .bind(crypto.randomUUID(),checkoutId,payment.id,payment.installment ?? null,payment.installmentNumber ?? null,normalizeAsaasPaymentStatus(payment.status),Math.round(payment.value * 100),payment.dueDate ?? null,payment.paymentDate ?? payment.confirmedDate ?? null,JSON.stringify(payment),now,now);
 }
 
@@ -164,7 +164,7 @@ export async function processCheckoutCreation(env: CheckoutWorkerEnv,checkoutId:
   }
 }
 
-export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eventId: string,resend = false) {
+export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eventId: string,resend = false,metaFetcher:MetaFetcher = fetch) {
   const now = new Date();
   const nowIso = now.toISOString();
   const token = crypto.randomUUID();
@@ -213,7 +213,7 @@ export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eve
     .bind(eventId,conversation.id,checkoutId,checkout.url,env.META_CHECKOUT_TEMPLATE,JSON.stringify({ resend }),checkout.request_id,nowIso).run();
 
   try {
-    const response = await sendCheckoutTemplate(env,phone,checkout.url);
+    const response = await sendCheckoutTemplate(env,phone,checkout.url,metaFetcher);
     const sentAt = new Date().toISOString();
     const externalId = response.messages?.[0]?.id;
     if (!externalId) throw new Error("Meta did not return a message id");

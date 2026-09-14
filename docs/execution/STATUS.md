@@ -4,9 +4,9 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 4 concluída localmente; integração e CI remoto pendentes.
-- Branch ativa: `codex/wave-4-dashboard-observability`.
-- Base: `main` em `8a57a9f`.
+- Onda atual: 5 concluída localmente; integração e CI remoto pendentes.
+- Branch ativa: `codex/wave-5-e2e-launch`.
+- Base: `main` em `4c4069d`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Ambientes externos: não configurados/autorizados nesta execução.
 
@@ -72,7 +72,7 @@ Atualizado em: 2026-09-14
 - PR `#4` integrada em `main` no commit `8a57a9f`.
 - CI remoto aprovado nas execuções `34858446009` (PR) e `34858840979` (`main`).
 
-## Onda 4 concluída localmente
+## Onda 4 concluída
 
 - Dashboard possui filtros de etapa, edição, responsável, origem, período e tarefas vencidas.
 - Tarefas possuem prazo, responsável, prioridade, conclusão/reabertura e auditoria.
@@ -84,16 +84,29 @@ Atualizado em: 2026-09-14
 - Rate limits D1 cobrem formulário, resposta manual e checkout; webhooks têm assinatura, deduplicação e limite de payload.
 - Painel operacional consolida falhas de Queue, Meta, OpenAI, Asaas e e-mail.
 - Gate local aprovado: migration `0005` repetível, 64 unitários, testes D1 das ondas 2–4, build, 33 visuais e auditoria.
+- PR `#5` integrada em `main` no commit `4c4069d`.
+- CI remoto aprovado nas execuções `34861800501` (PR) e `34862179558` (`main`).
+
+## Onda 5 concluída localmente
+
+- Testes E2E usam o runtime Workers com D1, Queue e R2 reais locais; `.dev.vars` não é carregado.
+- Meta, OpenAI, Asaas e e-mail são os únicos serviços mockados nos cenários automatizados.
+- Fluxo completo cobre UTM → lead → agente → qualificação humana → checkout → entrega → `PAGO` → confirmação.
+- Duplicidade/ordem, última vaga, retry, opt-out, handoff e permissões são exercitados no workerd.
+- Runtime revelou e validou a correção do `INSERT` público de lead e da regressão de pagamento por evento atrasado.
+- CI agora inclui as três baterias D1 e a suíte Workers.
+- Preflight e runbooks documentam configuração externa, staging, rollback e piloto de uma edição.
+- Gate local aprovado: 64 unitários, 18 invariantes D1, 6 cenários Workers, build, 33 visuais e auditoria.
 
 ## Próximas ações
 
-1. Integrar a Onda 4 em `main` e confirmar o CI remoto.
-2. Iniciar Onda 5 com runtime Workers, bindings locais e provedores mockados.
-3. Criar E2E do fluxo UTM → `PAGO` → confirmação e preparar runbook de staging/piloto.
+1. Integrar a Onda 5 em `main` e confirmar o CI remoto ampliado.
+2. Provisionar recursos e credenciais de staging e substituir os IDs marcadores.
+3. Com autorização específica, publicar staging, executar sandbox real e pilotar uma edição.
 
 ## Riscos e bloqueios atuais
 
-- Os IDs D1 em Wrangler são marcadores; migrations remotas não podem ser aplicadas.
+- Os IDs D1 em Wrangler são marcadores; o preflight bloqueia migrations/publicação remotas.
 - Meta, Asaas, OpenAI e e-mail dependem de contas, tokens e aprovações externas.
 - Nenhum envio, cobrança ou deploy real está autorizado.
 

@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const statements = [
       env.DB.prepare(`INSERT INTO leads
         (id,name,email,normalized_email,phone,normalized_phone,instagram,company,city_state,edition_id,stage,consent_version,consent_at,source_system,external_id,dedupe_key,request_id,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,'NOVO',?,?,'platform',NULL,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,'NOVO',?,?,'platform',NULL,?,?,?,?)
         ON CONFLICT(dedupe_key) DO UPDATE SET name=excluded.name,email=excluded.email,normalized_email=excluded.normalized_email,phone=excluded.phone,normalized_phone=excluded.normalized_phone,instagram=excluded.instagram,company=excluded.company,city_state=excluded.city_state,edition_id=excluded.edition_id,consent_version=excluded.consent_version,consent_at=excluded.consent_at,request_id=excluded.request_id,updated_at=excluded.updated_at`)
         .bind(leadId,input.nome,input.email,normalizedEmail,input.telefone,normalizedPhone,input.instagram ?? "",input.empresa,input.cidade_estado,edition.id,input.consent.version,now,dedupeKey,requestId,now,now),
       env.DB.prepare("INSERT INTO lead_answers (id,lead_id,answers_json,created_at) VALUES (?,?,?,?)")
