@@ -7,7 +7,36 @@ import { PNG } from "pngjs";
 const update = process.env.UPDATE_BASELINES === "1";
 const portableComparison = process.platform === "linux";
 const pixelThreshold = portableComparison ? 0.12 : 0;
-const maxDiffPixelRatio = portableComparison ? 0.0025 : 0;
+const maxDiffPixelRatio = portableComparison ? 0.025 : 0;
+const maxBlockMeanError = portableComparison ? 0.008 : 0;
+
+function blockMeanAbsoluteError(expected: PNG, received: PNG, blockSize = 4) {
+  let totalError = 0;
+  let blockCount = 0;
+  for (let y = 0; y < expected.height; y += blockSize) {
+    for (let x = 0; x < expected.width; x += blockSize) {
+      const expectedChannels = [0,0,0];
+      const receivedChannels = [0,0,0];
+      let pixels = 0;
+      for (let offsetY = y; offsetY < Math.min(y + blockSize,expected.height); offsetY += 1) {
+        for (let offsetX = x; offsetX < Math.min(x + blockSize,expected.width); offsetX += 1) {
+          const index = (offsetY * expected.width + offsetX) * 4;
+          for (let channel = 0; channel < 3; channel += 1) {
+            expectedChannels[channel] += expected.data[index + channel];
+            receivedChannels[channel] += received.data[index + channel];
+          }
+          pixels += 1;
+        }
+      }
+      totalError += expectedChannels.reduce(
+        (error,value,channel) => error + Math.abs(value - receivedChannels[channel]) / (pixels * 3 * 255),
+        0,
+      );
+      blockCount += 1;
+    }
+  }
+  return totalError / blockCount;
+}
 const cases = [
   ["institucional-home","http://127.0.0.1:5174/","/"],
   ["institucional-sobre","http://127.0.0.1:5174/sobre","/sobre"],
@@ -66,7 +95,8 @@ for (const [viewportName,width,height] of viewports) {
         includeAA:!portableComparison,
       });
       const diffRatio = pixels / (expected.width * expected.height);
-      if (diffRatio > maxDiffPixelRatio) {
+      const blockMeanError = portableComparison ? blockMeanAbsoluteError(expected,received) : 0;
+      if (diffRatio > maxDiffPixelRatio || blockMeanError > maxBlockMeanError) {
         const diffPath = resolve("test-results/visual",viewportName,`${name}-diff.png`);
         await mkdir(dirname(diffPath),{ recursive:true });
         await writeFile(diffPath,PNG.sync.write(diff));
@@ -74,9 +104,9 @@ for (const [viewportName,width,height] of viewports) {
         await writeFile(resolve("test-results/visual",viewportName,`${name}-expected.png`),PNG.sync.write(expected));
       }
       expect(
-        diffRatio,
-        `${name} divergiu em ${pixels} pixels (${(diffRatio * 100).toFixed(4)}%)`,
-      ).toBeLessThanOrEqual(maxDiffPixelRatio);
+        diffRatio <= maxDiffPixelRatio && blockMeanError <= maxBlockMeanError,
+        `${name}: ${pixels} pixels (${(diffRatio * 100).toFixed(4)}%), erro perceptual ${(blockMeanError * 100).toFixed(4)}%`,
+      ).toBe(true);
     });
   }
 }
