@@ -4,9 +4,9 @@ Atualizado em: 2026-09-14
 
 ## Estado geral
 
-- Onda atual: 1 concluída localmente; integração e CI remoto pendentes.
-- Branch ativa: `codex/wave-1-domain-state`.
-- Base: `origin/main` em `a0450c3`.
+- Onda atual: 2 concluída localmente; integração e CI remoto pendentes.
+- Branch ativa: `codex/wave-2-checkout-asaas`.
+- Base: `main` em `32aef27`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Ambientes externos: não configurados/autorizados nesta execução.
 
@@ -29,7 +29,7 @@ Atualizado em: 2026-09-14
 - Fontes web foram empacotadas e os 33 baselines passaram a ter variantes macOS e Linux.
 - CI remoto definitivo aprovado na execução `34849879987` para `a0450c3`.
 
-## Onda 1 concluída localmente
+## Onda 1 concluída
 
 - Migration `0002_nappy_tag.sql` adiciona estados, parcelamento, erros, timestamps, conversa e notificações.
 - Checkout possui máquina técnica explícita e eixos financeiro e de envio separados.
@@ -40,12 +40,26 @@ Atualizado em: 2026-09-14
 - `PERDIDO`/`CANCELADO` exigem motivo; `NUTRICAO` cria próxima ação com vencimento.
 - Atualização otimista evita histórico e auditoria falsos em concorrência.
 - Gate local aprovado: migration repetível, 31 unitários, build, 33 visuais e auditoria.
+- PR `#2` integrada em `main` no commit `32aef27`.
+- CI remoto aprovado nas execuções `34851532033` (PR) e `34851855439` (`main`).
+
+## Onda 2 concluída localmente
+
+- Checkout agora reserva vaga, checkout, outbox, idempotência e auditoria atomicamente e retorna `202` em `CREATING`.
+- Queue recupera cobrança por `externalReference` antes de criar; falha após o Asaas é retomável sem duplicação.
+- Pix é único; cartão respeita o limite da edição e usa `installmentCount` + `totalValue` quando parcelado.
+- Parcelas são persistidas e conciliadas individualmente; pagamento não é inferido da criação.
+- Envio só ocorre após `READY`; aceite/entrega Meta atualizam checkout e pipeline separadamente.
+- Webhooks Asaas são assinados, deduplicados, validados e reprocessados com backoff.
+- Expiração e cancelamento liberam a reserva e removem cobranças abertas no Asaas por Queue.
+- APIs de detalhe, envio/reenvio e entrega manual auditada foram implementadas.
+- Gate local aprovado: migration `0003` repetível, 47 unitários, teste D1, build, 33 visuais e auditoria.
 
 ## Próximas ações
 
-1. Integrar a Onda 1 em `main` e confirmar o CI remoto.
-2. Iniciar Onda 2 com reserva e criação assíncrona de checkout via outbox/Queue.
-3. Implementar idempotência Asaas por `externalReference` e envio somente após `READY`.
+1. Integrar a Onda 2 em `main` e confirmar o CI remoto.
+2. Iniciar Onda 3 pelas APIs de inbox, transcript, claim/release e mensagem manual.
+3. Substituir o fluxo legado do agente pelo contexto D1, exclusão mútua e resumo assíncrono.
 
 ## Riscos e bloqueios atuais
 
