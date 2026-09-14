@@ -1,70 +1,34 @@
-import { answerWithAgent } from "@/server/integrations/openai-agent";
-import { sendWhatsAppText } from "@/server/integrations/meta";
 import { expireCheckoutReservations,markCheckoutDelivered,processCheckoutCancellation,processCheckoutCreation,sendCheckout } from "@/server/checkout-processing";
+import { processConversationSummary,processIncomingWhatsApp,processManualConversationMessage } from "@/server/conversation-processing";
 import { getAsaasPayment } from "@/server/integrations/asaas";
 import { applyAsaasPayment,asaasStatusEvent } from "@/server/integrations/asaas-payment";
 import { processStoredAsaasWebhook,type StoredAsaasWebhook } from "@/server/integrations/asaas-webhook";
 import { publishOutbox } from "@/server/outbox";
 import type { RuntimeSecrets } from "@/server/secrets";
 
-type EventBody = { type:string;externalId?:string;checkoutId?:string;providerPaymentId?:string;id?:string;leadId?:string;resend?:boolean };
+type EventBody = { type:string;externalId?:string;checkoutId?:string;providerPaymentId?:string;id?:string;leadId?:string;resend?:boolean;conversationId?:string;messageId?:string;targetCount?:number };
 type WorkerEnv = Env & RuntimeSecrets;
-
-async function handleWhatsAppIncoming(env: WorkerEnv, externalId: string) {
-  const stored = await env.DB.prepare("SELECT id,payload_json FROM webhook_events WHERE provider='meta' AND external_id=?").bind(externalId).first<{ id: string; payload_json: string }>();
-  if (!stored) return;
-  const payload = JSON.parse(stored.payload_json) as { event: { id: string; from: string; type: string; text?: { body?: string } } };
-  const event = payload.event;
-  const phone = event.from.replace(/\D/g, "");
-  const lead = await env.DB.prepare("SELECT id FROM leads WHERE replace(normalized_phone,'+','')=?").bind(phone).first<{ id: string }>();
-  const now = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO conversations (id,lead_id,channel,external_id,human_active,created_at,updated_at)
-    VALUES (?,?,'whatsapp',?,0,?,?) ON CONFLICT(channel,external_id) DO UPDATE SET lead_id=coalesce(conversations.lead_id,excluded.lead_id),updated_at=excluded.updated_at`)
-    .bind(crypto.randomUUID(),lead?.id ?? null,phone,now,now).run();
-  const conversation = await env.DB.prepare("SELECT id,human_active,opted_out_at FROM conversations WHERE channel='whatsapp' AND external_id=?").bind(phone)
-    .first<{ id: string; human_active: number; opted_out_at: string | null }>();
-  if (!conversation) throw new Error("Conversation upsert failed");
-  const text = event.text?.body?.trim() ?? "";
-  await env.DB.prepare("INSERT OR IGNORE INTO messages (id,conversation_id,external_id,direction,type,body,status,payload_json,created_at) VALUES (?,?,?,'IN',?,?,'RECEIVED',?,?)")
-    .bind(crypto.randomUUID(),conversation.id,event.id,event.type,text || null,JSON.stringify(event),now).run();
-  await env.DB.prepare("UPDATE webhook_events SET processed_at=? WHERE id=?").bind(now,stored.id).run();
-  if (!text || conversation.opted_out_at) return;
-  if (/^(sair|parar|cancelar mensagens|não quero receber)$/i.test(text)) {
-    await env.DB.prepare("UPDATE conversations SET opted_out_at=?,human_active=1,updated_at=? WHERE id=?").bind(now,now,conversation.id).run();
-    await sendWhatsAppText(env,phone,"Tudo certo. Você não receberá novas mensagens automáticas.");
-    return;
-  }
-  const explicitHandoff = /(comprar|pagar|pix|cart[aã]o|fechar|reclama|atendente|humano|pessoa)/i.test(text);
-  if (conversation.human_active || explicitHandoff) {
-    await env.DB.prepare("UPDATE conversations SET human_active=1,updated_at=? WHERE id=?").bind(now,conversation.id).run();
-    if (lead) await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,body,created_at) VALUES (?,?,'HANDOFF','Atendimento humano solicitado',?,?)").bind(crypto.randomUUID(),lead.id,text,now).run();
-    await sendWhatsAppText(env,phone,"Entendi. Vou transferir seu atendimento para uma pessoa da equipe New Wed.");
-    return;
-  }
-  const answer = await answerWithAgent(env,{ message: text, leadId: lead?.id });
-  if (answer.handoff) {
-    await env.DB.prepare("UPDATE conversations SET human_active=1,updated_at=? WHERE id=?").bind(now,conversation.id).run();
-    if (lead) await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,body,created_at) VALUES (?,?,'HANDOFF','Agente solicitou apoio humano',?,?)").bind(crypto.randomUUID(),lead.id,text,now).run();
-  }
-  const sent = await sendWhatsAppText(env,phone,answer.reply);
-  await env.DB.prepare("INSERT INTO messages (id,conversation_id,external_id,direction,type,body,status,payload_json,created_at) VALUES (?,?,?,'OUT','text',?,'SENT',?,?)")
-    .bind(crypto.randomUUID(),conversation.id,sent.messages?.[0]?.id ?? null,answer.reply,JSON.stringify({ agent: true, confidence: answer.confidence }),new Date().toISOString()).run();
-}
 
 async function handleStatus(env: WorkerEnv, externalId: string) {
   const stored = await env.DB.prepare("SELECT id,payload_json FROM webhook_events WHERE provider='meta' AND external_id=?").bind(externalId).first<{ id: string; payload_json: string }>();
   if (!stored) return;
   const payload = JSON.parse(stored.payload_json) as { event: { id: string; status?: string } };
-  const message = await env.DB.prepare("SELECT checkout_id FROM messages WHERE external_id=?").bind(payload.event.id).first<{ checkout_id:string|null }>();
+  const message = await env.DB.prepare("SELECT checkout_id,status FROM messages WHERE external_id=?").bind(payload.event.id).first<{ checkout_id:string|null;status:string }>();
   const status = (payload.event.status ?? "unknown").toUpperCase();
+  const now = new Date().toISOString();
   await env.DB.batch([
-    env.DB.prepare("UPDATE messages SET status=? WHERE external_id=?").bind(status,payload.event.id),
-    env.DB.prepare("UPDATE webhook_events SET processed_at=? WHERE id=?").bind(new Date().toISOString(),stored.id),
+    env.DB.prepare(`UPDATE messages SET status=CASE
+      WHEN status='READ' THEN status
+      WHEN status='DELIVERED' AND ? IN ('ACCEPTED','SENT','FAILED') THEN status
+      ELSE ? END,
+      failed_at=CASE WHEN ?='FAILED' AND status NOT IN ('DELIVERED','READ') THEN coalesce(failed_at,?) ELSE failed_at END,
+      last_error=CASE WHEN ?='FAILED' AND status NOT IN ('DELIVERED','READ') THEN 'A Meta informou falha na entrega.' ELSE last_error END
+      WHERE external_id=?`).bind(status,status,status,now,status,payload.event.id),
+    env.DB.prepare("UPDATE webhook_events SET processed_at=? WHERE id=?").bind(now,stored.id),
   ]);
   if (message?.checkout_id && (status === "DELIVERED" || status === "READ")) {
     await markCheckoutDelivered(env,message.checkout_id,null,"Entrega confirmada pela Meta");
-  } else if (message?.checkout_id && status === "FAILED") {
-    const now = new Date().toISOString();
+  } else if (message?.checkout_id && status === "FAILED" && !["DELIVERED","READ"].includes(message.status)) {
     await env.DB.prepare("UPDATE checkouts SET status='FAILED',send_status='FAILED',last_error_code='META_DELIVERY_FAILED',last_error='A Meta informou falha na entrega.',last_error_at=?,updated_at=?,version=version+1 WHERE id=? AND status IN ('SEND_PENDING','SENT')")
       .bind(now,now,message.checkout_id).run();
   }
@@ -76,11 +40,13 @@ async function reconcileAsaas(env: WorkerEnv, providerPaymentId: string) {
 }
 
 async function handleEvent(env: WorkerEnv, body: EventBody) {
-  if (body.type === "whatsapp.incoming" && body.externalId) return handleWhatsAppIncoming(env,body.externalId);
+  if (body.type === "whatsapp.incoming" && body.externalId) return processIncomingWhatsApp(env,body.externalId);
   if (body.type === "whatsapp.status" && body.externalId) return handleStatus(env,body.externalId);
   if (body.type === "checkout.create" && body.checkoutId && body.id) return processCheckoutCreation(env,body.checkoutId,body.id);
   if (body.type === "checkout.send" && body.checkoutId && body.id) return sendCheckout(env,body.checkoutId,body.id,body.resend);
   if (body.type === "checkout.cancel" && body.checkoutId) return processCheckoutCancellation(env,body.checkoutId);
+  if (body.type === "conversation.manual.send" && body.messageId) return processManualConversationMessage(env,body.messageId);
+  if (body.type === "conversation.summarize" && body.conversationId && body.targetCount) return processConversationSummary(env,body.conversationId,body.targetCount);
   if (body.type === "asaas.reconcile" && body.providerPaymentId) return reconcileAsaas(env,body.providerPaymentId);
   if (body.type === "lead.submitted" && body.leadId) {
     await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,created_at) VALUES (?,?,'LEAD_CREATED','Pré-inscrição recebida',?)")
@@ -106,6 +72,10 @@ export default {
         .bind(now),
       workerEnv.DB.prepare("UPDATE checkouts SET status='FAILED',send_status='FAILED',last_error_code='META_DELIVERY_UNKNOWN',last_error='O aceite do envio não foi confirmado após o lease.',last_error_at=?,processing_token=NULL,processing_started_at=NULL,updated_at=? WHERE status='SEND_PENDING' AND processing_started_at IS NOT NULL AND processing_started_at<=?")
         .bind(now,now,stale),
+      workerEnv.DB.prepare("UPDATE conversations SET mode='HUMAN',human_active=1,agent_paused_at=coalesce(agent_paused_at,?),agent_error='Resposta do agente excedeu o lease e foi encaminhada ao humano.',agent_processing_token=NULL,agent_processing_started_at=NULL,updated_at=? WHERE agent_processing_token IS NOT NULL AND agent_processing_started_at<=?")
+        .bind(now,now,new Date(Date.now() - 2 * 60_000).toISOString()),
+      workerEnv.DB.prepare("UPDATE messages SET status='FAILED',last_error='O resultado do envio não foi confirmado dentro do lease.',failed_at=? WHERE status='SENDING' AND created_at<=?")
+        .bind(now,stale),
     ]);
     const pending = await workerEnv.DB.prepare("SELECT id,type,aggregate_id,payload_json FROM outbox_events WHERE published_at IS NULL AND attempts<10 AND (next_attempt_at IS NULL OR next_attempt_at<=?) ORDER BY created_at LIMIT 50")
       .bind(now).all<{ id:string;type:string;aggregate_id:string;payload_json:string }>();

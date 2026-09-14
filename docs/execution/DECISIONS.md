@@ -54,7 +54,7 @@ Usar `@cloudflare/vitest-plugin`, integração oficial vigente para Vitest 5 e r
 
 ## D-014 — Compatibilidade temporária da conversa
 
-`conversations.mode` (`AGENT` ou `HUMAN`) é o estado autoritativo novo. `human_active` permanece durante a transição para não quebrar o worker anterior e será removido após todos os consumidores usarem `mode` na Onda 3.
+`conversations.mode` (`AGENT` ou `HUMAN`) é o estado autoritativo. `human_active` permanece apenas como espelho temporário para compatibilidade de rollout; nenhum fluxo decide por esse campo.
 
 ## D-015 — Checkout assíncrono e recuperável
 
@@ -67,3 +67,11 @@ A API apenas reserva a vaga e persiste checkout/outbox, retornando `202`. A Queu
 ## D-017 — Cancelamento encerra cobranças abertas
 
 Expiração ou cancelamento libera a reserva local e agenda a remoção da cobrança no Asaas. Cobrança única usa `/payments/:id`; parcelamento remove cobranças pendentes/vencidas por `/installments/:id/payments`. Uma confirmação financeira observada durante a corrida prevalece e volta à conciliação de capacidade.
+
+## D-018 — Exclusão mútua agente/humano
+
+O claim muda imediatamente a conversa para `HUMAN`, mas preserva um lease automático já em andamento até o worker observar a pausa. Enquanto esse lease existir, a API manual não aceita resposta. Assim, agente e vendedor não obtêm simultaneamente permissão de envio.
+
+## D-019 — Ingestão Meta recuperável
+
+Mensagem recebida e cada estado Meta usam identificadores de webhook distintos e outbox persistente antes da publicação na Queue. Repetição é segura, e eventos `sent`, `delivered` e `read` do mesmo message ID não colidem.

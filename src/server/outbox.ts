@@ -1,4 +1,4 @@
-export type QueueEvent = { id:string;type:string;checkoutId?:string;leadId?:string;externalId?:string;providerPaymentId?:string;resend?:boolean };
+export type QueueEvent = { id:string;type:string;checkoutId?:string;leadId?:string;externalId?:string;providerPaymentId?:string;resend?:boolean;conversationId?:string;messageId?:string;targetCount?:number };
 
 type OutboxEnv = Pick<Env,"DB"|"EVENTS_QUEUE">;
 
