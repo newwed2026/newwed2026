@@ -60,7 +60,6 @@
     "baseline:capture": "UPDATE_BASELINES=1 playwright test tests/visual/parity.spec.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply new-wed-platform-development --local",
-    "cf:types": "wrangler types src/types/cloudflare-env.d.ts",
-    "base44:prepare": "tsx scripts/prepare-base44-migration.ts"
+    "cf:types": "wrangler types src/types/cloudflare-env.d.ts --env-file config/wrangler-types.env"
   }
 }

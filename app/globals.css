@@ -141,3 +141,11 @@
 .animate-fade-up { animation: fadeUp 0.9s ease forwards; }
 .animate-ticker { animation: ticker 40s linear infinite; }
 .animate-slow-zoom { animation: slowZoom 18s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    caret-color: transparent !important;
+  }
+}

@@ -37,6 +37,6 @@ Defina `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `TURNSTILE_SITE_KEY`, `OPENAI_MODEL` 
 4. Publique o consumidor com `npm run deploy:events -- --env staging` (ou `production`).
 5. Publique o app com `npm run deploy -- --env staging` (ou `production`).
 6. Cadastre URLs de webhook e execute smoke tests sem cobrança ou mensagem real.
-7. Após o piloto e a conciliação Base44, repita em produção.
+7. Após o piloto e a conciliação financeira do sandbox, repita em produção.
 
 O repositório não cria recursos nem envia mensagens/pagamentos automaticamente. Essas ações dependem das credenciais e da janela de lançamento aprovadas.

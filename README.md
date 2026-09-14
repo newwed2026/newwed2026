@@ -23,4 +23,4 @@ npm run build
 npm run test:visual
 ```
 
-Consulte [arquitetura](docs/ARCHITECTURE.md), [deploy](docs/DEPLOYMENT.md) e [migração Base44](docs/BASE44-MIGRATION.md).
+Consulte [arquitetura](docs/ARCHITECTURE.md), [deploy](docs/DEPLOYMENT.md) e o [plano contínuo de execução](docs/execution/MASTER_PLAN.md).
