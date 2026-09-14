@@ -7,7 +7,7 @@ import type { RuntimeSecrets } from "@/server/secrets";
 type ConversationWorkerEnv = Env & RuntimeSecrets;
 type ProcessingDependencies = { openaiFetcher?:OpenAIFetcher;metaFetcher?:MetaFetcher };
 type ConversationRow = {
-  id:string;lead_id:string|null;mode:"AGENT"|"HUMAN";claimed_by:string|null;opted_out_at:string|null;
+  id:string;lead_id:string|null;mode:"AGENT"|"HUMAN";claimed_by:string|null;opted_out_at:string|null;request_id:string|null;
 };
 
 function errorMessage(error: unknown) {
@@ -30,9 +30,9 @@ async function storeAndSendReply(env: ConversationWorkerEnv,input: {
 
   const messageId = crypto.randomUUID();
   const startedAt = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO messages (id,conversation_id,direction,type,body,status,payload_json,created_at)
-    VALUES (?,?,'OUT','text',?,'SENDING',?,?)`)
-    .bind(messageId,input.conversation.id,input.reply.reply,JSON.stringify({ source:"agent",confidence:input.reply.confidence,handoff:input.reply.handoff,reason:input.reply.reason }),startedAt).run();
+  await env.DB.prepare(`INSERT INTO messages (id,conversation_id,direction,type,body,status,payload_json,request_id,created_at)
+    VALUES (?,?,'OUT','text',?,'SENDING',?,?,?)`)
+    .bind(messageId,input.conversation.id,input.reply.reply,JSON.stringify({ source:"agent",confidence:input.reply.confidence,handoff:input.reply.handoff,reason:input.reply.reason }),input.conversation.request_id,startedAt).run();
   try {
     const response = await sendWhatsAppText(env,input.phone,input.reply.reply,metaFetcher);
     const externalId = response.messages?.[0]?.id;
@@ -53,32 +53,32 @@ async function storeAndSendReply(env: ConversationWorkerEnv,input: {
         .bind(failedAt,failure,failedAt,input.conversation.id,input.token),
     ]);
     if (input.conversation.lead_id) {
-      await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,body,created_at) VALUES (?,?,'HANDOFF','Falha no envio do agente',?,?)")
-        .bind(crypto.randomUUID(),input.conversation.lead_id,failure,failedAt).run();
+      await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,body,created_at,updated_at) VALUES (?,?,'HANDOFF','Falha no envio do agente',?,?,?)")
+        .bind(crypto.randomUUID(),input.conversation.lead_id,failure,failedAt,failedAt).run();
     }
     return { sent:false as const,error:failure };
   }
 }
 
 export async function processIncomingWhatsApp(env: ConversationWorkerEnv,externalId: string,dependencies: ProcessingDependencies = {}) {
-  const stored = await env.DB.prepare("SELECT id,payload_json,processed_at FROM webhook_events WHERE provider='meta' AND external_id=?")
-    .bind(externalId).first<{ id:string;payload_json:string;processed_at:string|null }>();
+  const stored = await env.DB.prepare("SELECT id,payload_json,processed_at,request_id FROM webhook_events WHERE provider='meta' AND external_id=?")
+    .bind(externalId).first<{ id:string;payload_json:string;processed_at:string|null;request_id:string|null }>();
   if (!stored || stored.processed_at) return { processed:false as const,duplicate:Boolean(stored?.processed_at) };
   const payload = JSON.parse(stored.payload_json) as { event:{ id:string;from:string;type:string;text?:{ body?:string } } };
   const event = payload.event;
   const phone = event.from.replace(/\D/g,"");
   const lead = await env.DB.prepare("SELECT id FROM leads WHERE replace(normalized_phone,'+','')=?").bind(phone).first<{ id:string }>();
   const now = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO conversations (id,lead_id,channel,external_id,mode,human_active,last_message_at,created_at,updated_at)
-    VALUES (?,?,'whatsapp',?,'AGENT',0,?,?,?) ON CONFLICT(channel,external_id) DO UPDATE SET lead_id=coalesce(conversations.lead_id,excluded.lead_id),last_message_at=excluded.last_message_at,updated_at=excluded.updated_at`)
-    .bind(crypto.randomUUID(),lead?.id ?? null,phone,now,now,now).run();
-  const conversation = await env.DB.prepare("SELECT id,lead_id,mode,claimed_by,opted_out_at FROM conversations WHERE channel='whatsapp' AND external_id=?")
+  await env.DB.prepare(`INSERT INTO conversations (id,lead_id,channel,external_id,mode,human_active,last_message_at,request_id,created_at,updated_at)
+    VALUES (?,?,'whatsapp',?,'AGENT',0,?,?,?,?) ON CONFLICT(channel,external_id) DO UPDATE SET lead_id=coalesce(conversations.lead_id,excluded.lead_id),last_message_at=excluded.last_message_at,request_id=excluded.request_id,updated_at=excluded.updated_at`)
+    .bind(crypto.randomUUID(),lead?.id ?? null,phone,now,stored.request_id,now,now).run();
+  const conversation = await env.DB.prepare("SELECT id,lead_id,mode,claimed_by,opted_out_at,request_id FROM conversations WHERE channel='whatsapp' AND external_id=?")
     .bind(phone).first<ConversationRow>();
   if (!conversation) throw new Error("Conversation upsert failed");
   const text = event.text?.body?.trim() ?? "";
   const [inserted] = await env.DB.batch([
-    env.DB.prepare("INSERT OR IGNORE INTO messages (id,conversation_id,external_id,direction,type,body,status,payload_json,created_at) VALUES (?,?,?,'IN',?,?,'RECEIVED',?,?)")
-      .bind(crypto.randomUUID(),conversation.id,event.id,event.type,text || null,JSON.stringify(event),now),
+    env.DB.prepare("INSERT OR IGNORE INTO messages (id,conversation_id,external_id,direction,type,body,status,payload_json,request_id,created_at) VALUES (?,?,?,'IN',?,?,'RECEIVED',?,?,?)")
+      .bind(crypto.randomUUID(),conversation.id,event.id,event.type,text || null,JSON.stringify(event),stored.request_id,now),
     env.DB.prepare("UPDATE webhook_events SET processed_at=?,error=NULL WHERE id=?").bind(now,stored.id),
   ]);
   if ((inserted.meta.changes ?? 0) !== 1) return { processed:true as const,duplicate:true };

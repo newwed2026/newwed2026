@@ -3,6 +3,7 @@ import { hmacSha256Hex, timingSafeEqual } from "@/server/crypto";
 import { errorResponse, HttpError, json } from "@/server/http";
 import { publishOutbox } from "@/server/outbox";
 import { getSecrets } from "@/server/secrets";
+import { requestIdFrom,responseWithRequestId } from "@/server/request-context";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -14,10 +15,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     const secret = getSecrets().META_APP_SECRET;
     if (!secret) throw new HttpError(503, "META_NOT_CONFIGURED", "Integração Meta ainda não configurada.");
+    const declared = Number(request.headers.get("content-length") ?? 0);
+    if (declared > 256 * 1024) throw new HttpError(413,"PAYLOAD_TOO_LARGE","O payload excede o limite permitido.");
     const body = await request.arrayBuffer();
+    if (body.byteLength > 256 * 1024) throw new HttpError(413,"PAYLOAD_TOO_LARGE","O payload excede o limite permitido.");
     const expected = `sha256=${await hmacSha256Hex(secret, body)}`;
     const received = request.headers.get("x-hub-signature-256") ?? "";
     if (!timingSafeEqual(expected, received)) throw new HttpError(401, "INVALID_SIGNATURE", "Webhook não autorizado.");
@@ -38,19 +43,19 @@ export async function POST(request: Request) {
           const outboxId = crypto.randomUUID();
           const type = isMessage ? "whatsapp.incoming" : "whatsapp.status";
           await env.DB.batch([
-            env.DB.prepare("INSERT OR IGNORE INTO webhook_events (id,provider,external_id,event_type,payload_json,created_at) VALUES (?,'meta',?,?,?,?)")
-              .bind(crypto.randomUUID(),externalId,isMessage ? "message" : "status",JSON.stringify({ event,metadata:value?.metadata,contacts:value?.contacts }),now),
-            env.DB.prepare("INSERT OR IGNORE INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,created_at) SELECT ?,?,?,?, ?,0,? WHERE changes()=1")
-              .bind(outboxId,type,externalId,`meta.webhook:${externalId}`,JSON.stringify({ externalId }),now),
+            env.DB.prepare("INSERT OR IGNORE INTO webhook_events (id,provider,external_id,event_type,payload_json,request_id,created_at) VALUES (?,'meta',?,?,?,?,?)")
+              .bind(crypto.randomUUID(),externalId,isMessage ? "message" : "status",JSON.stringify({ event,metadata:value?.metadata,contacts:value?.contacts }),requestId,now),
+            env.DB.prepare("INSERT OR IGNORE INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,request_id,created_at) SELECT ?,?,?,?, ?,0,?,? WHERE changes()=1")
+              .bind(outboxId,type,externalId,`meta.webhook:${externalId}`,JSON.stringify({ externalId,requestId }),requestId,now),
           ]);
           const pending = await env.DB.prepare("SELECT id,published_at FROM outbox_events WHERE dedupe_key=?")
             .bind(`meta.webhook:${externalId}`).first<{ id:string;published_at:string|null }>();
-          if (pending && !pending.published_at && await publishOutbox(env,{ id:pending.id,type,externalId })) {
+          if (pending && !pending.published_at && await publishOutbox(env,{ id:pending.id,type,externalId,requestId })) {
             queued += 1;
           }
         }
       }
     }
-    return json({ received: true, queued });
-  } catch (error) { return errorResponse(error); }
+    return responseWithRequestId(json({ received: true, queued }),requestId);
+  } catch (error) { return responseWithRequestId(errorResponse(error,requestId),requestId); }
 }

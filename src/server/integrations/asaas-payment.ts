@@ -1,6 +1,7 @@
 import { resolveCheckoutStatus,type PaymentStatus } from "@/features/billing/payment-state";
 import { HttpError } from "@/server/http";
 import type { AsaasPaymentSnapshot } from "@/server/integrations/asaas";
+import { ensurePaidNotification } from "@/server/notifications";
 
 type CheckoutSnapshot = {
   id:string;
@@ -80,7 +81,7 @@ async function locateCheckout(env: Pick<Env,"DB">,payment: AsaasPaymentSnapshot)
     .bind(payment.id,payment.id,payment.externalReference ?? "").first<CheckoutSnapshot>();
 }
 
-export async function applyAsaasPayment(env: Pick<Env,"DB">,event: string,payment: AsaasPaymentSnapshot,rawPayload: unknown) {
+export async function applyAsaasPayment(env: Pick<Env,"DB"|"EVENTS_QUEUE">,event: string,payment: AsaasPaymentSnapshot,rawPayload: unknown,requestId = crypto.randomUUID()) {
   const checkout = await locateCheckout(env,payment);
   if (!checkout) return { found:false as const };
   validatePayment(checkout,payment);
@@ -91,6 +92,7 @@ export async function applyAsaasPayment(env: Pick<Env,"DB">,event: string,paymen
   await paymentUpsert(env,checkout.id,paymentStatus,payment,rawPayload,now).run();
 
   if (nextStatus === checkout.status && (checkout.status === "PAID" || checkout.status === "REFUNDED")) {
+    if (checkout.status === "PAID") await ensurePaidNotification(env,checkout.id,requestId);
     return { found:true as const,checkoutId:checkout.id,status:checkout.status,paymentStatus };
   }
 
@@ -117,6 +119,7 @@ export async function applyAsaasPayment(env: Pick<Env,"DB">,event: string,paymen
         return { found:true as const,checkoutId:checkout.id,status:checkout.status,paymentStatus,divergence:"PAID_WITHOUT_CAPACITY" as const };
       }
     }
+    await ensurePaidNotification(env,checkout.id,requestId);
     return { found:true as const,checkoutId:checkout.id,status:"PAID" as const,paymentStatus };
   }
 

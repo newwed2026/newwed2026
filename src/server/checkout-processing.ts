@@ -34,6 +34,7 @@ type CheckoutCreationRow = {
   normalized_phone:string;
   price_name:string;
   edition_name:string;
+  request_id:string|null;
 };
 
 function processingError(error: unknown) {
@@ -79,15 +80,16 @@ export async function enqueueCheckoutSend(env: CheckoutWorkerEnv,checkoutId: str
   const outboxId = crypto.randomUUID();
   const now = new Date().toISOString();
   const dedupeKey = `checkout.send:auto:${checkoutId}`;
+  const checkout = await env.DB.prepare("SELECT request_id FROM checkouts WHERE id=?").bind(checkoutId).first<{request_id:string|null}>();
   const [updated] = await env.DB.batch([
     env.DB.prepare("UPDATE checkouts SET status='SEND_PENDING',send_status='PENDING',send_requested_at=?,updated_at=?,version=version+1 WHERE id=? AND status='READY' AND url IS NOT NULL")
       .bind(now,now,checkoutId),
-    env.DB.prepare("INSERT OR IGNORE INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,created_at) SELECT ?,'checkout.send',?,?,?,0,? WHERE changes()=1")
-      .bind(outboxId,checkoutId,dedupeKey,JSON.stringify({ checkoutId,resend:false }),now),
+    env.DB.prepare("INSERT OR IGNORE INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,request_id,created_at) SELECT ?,'checkout.send',?,?,?,0,?,? WHERE changes()=1")
+      .bind(outboxId,checkoutId,dedupeKey,JSON.stringify({ checkoutId,resend:false,requestId:checkout?.request_id }),checkout?.request_id ?? null,now),
   ]);
   if ((updated.meta.changes ?? 0) !== 1) return false;
   const stored = await env.DB.prepare("SELECT id FROM outbox_events WHERE dedupe_key=?").bind(dedupeKey).first<{ id:string }>();
-  return stored ? publishOutbox(env,{ id:stored.id,type:"checkout.send",checkoutId,resend:false }) : false;
+  return stored ? publishOutbox(env,{ id:stored.id,type:"checkout.send",checkoutId,resend:false,requestId:checkout?.request_id ?? undefined }) : false;
 }
 
 export async function processCheckoutCreation(env: CheckoutWorkerEnv,checkoutId: string,outboxId: string,fetcher: AsaasFetcher = fetch) {
@@ -101,7 +103,7 @@ export async function processCheckoutCreation(env: CheckoutWorkerEnv,checkoutId:
   if ((claimed.meta.changes ?? 0) !== 1) return { processed:false as const };
 
   const checkout = await env.DB.prepare(`SELECT c.id,c.lead_id,c.edition_id,c.price_batch_id,c.provider_customer_id,c.method,c.installment_count,c.amount_cents,c.expires_at,c.retry_count,
-    l.name,l.email,l.normalized_phone,p.name AS price_name,e.name AS edition_name
+    l.name,l.email,l.normalized_phone,p.name AS price_name,e.name AS edition_name,c.request_id
     FROM checkouts c JOIN leads l ON l.id=c.lead_id JOIN price_batches p ON p.id=c.price_batch_id AND p.edition_id=c.edition_id JOIN editions e ON e.id=c.edition_id
     WHERE c.id=? AND c.processing_token=? AND c.amount_cents=p.amount_cents`)
     .bind(checkoutId,token).first<CheckoutCreationRow>();
@@ -148,7 +150,7 @@ export async function processCheckoutCreation(env: CheckoutWorkerEnv,checkoutId:
       return { processed:true as const,status:"RECONCILED" as const };
     }
     for (const payment of payments) {
-      await applyAsaasPayment(env,`PAYMENT_${payment.status.toUpperCase()}`,payment,{ source:"checkout_creation",payment });
+      await applyAsaasPayment(env,`PAYMENT_${payment.status.toUpperCase()}`,payment,{ source:"checkout_creation",payment },checkout.request_id ?? undefined);
     }
     await enqueueCheckoutSend(env,checkoutId);
     return { processed:true as const,status:"READY" as const,recovered:recoveredExisting };
@@ -173,8 +175,8 @@ export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eve
     .bind(token,nowIso,nowIso,checkoutId,nowIso,staleBefore).run();
   if ((claimed.meta.changes ?? 0) !== 1) return { sent:false as const };
 
-  const checkout = await env.DB.prepare(`SELECT c.url,c.lead_id,c.edition_id,c.status,l.normalized_phone,l.stage FROM checkouts c JOIN leads l ON l.id=c.lead_id WHERE c.id=? AND c.processing_token=?`)
-    .bind(checkoutId,token).first<{ url:string;lead_id:string;edition_id:string;status:string;normalized_phone:string;stage:string }>();
+  const checkout = await env.DB.prepare(`SELECT c.url,c.lead_id,c.edition_id,c.status,c.request_id,l.normalized_phone,l.stage FROM checkouts c JOIN leads l ON l.id=c.lead_id WHERE c.id=? AND c.processing_token=?`)
+    .bind(checkoutId,token).first<{ url:string;lead_id:string;edition_id:string;status:string;request_id:string|null;normalized_phone:string;stage:string }>();
   if (!checkout) {
     await env.DB.prepare("UPDATE checkouts SET status='FAILED',send_status='FAILED',last_error_code='CHECKOUT_SEND_SNAPSHOT_INVALID',last_error='Checkout ou lead não disponível para envio.',last_error_at=?,processing_token=NULL,processing_started_at=NULL,updated_at=? WHERE id=? AND processing_token=?")
       .bind(nowIso,nowIso,checkoutId,token).run();
@@ -191,9 +193,9 @@ export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eve
   }
 
   const phone = checkout.normalized_phone.replace(/\D/g,"");
-  await env.DB.prepare(`INSERT INTO conversations (id,lead_id,channel,external_id,mode,human_active,last_message_at,created_at,updated_at)
-    VALUES (?,?,'whatsapp',?,'AGENT',0,?,?,?) ON CONFLICT(channel,external_id) DO UPDATE SET lead_id=coalesce(conversations.lead_id,excluded.lead_id),last_message_at=excluded.last_message_at,updated_at=excluded.updated_at`)
-    .bind(crypto.randomUUID(),checkout.lead_id,phone,nowIso,nowIso,nowIso).run();
+  await env.DB.prepare(`INSERT INTO conversations (id,lead_id,channel,external_id,mode,human_active,last_message_at,request_id,created_at,updated_at)
+    VALUES (?,?,'whatsapp',?,'AGENT',0,?,?,?,?) ON CONFLICT(channel,external_id) DO UPDATE SET lead_id=coalesce(conversations.lead_id,excluded.lead_id),last_message_at=excluded.last_message_at,request_id=coalesce(excluded.request_id,conversations.request_id),updated_at=excluded.updated_at`)
+    .bind(crypto.randomUUID(),checkout.lead_id,phone,nowIso,checkout.request_id,nowIso,nowIso).run();
   const conversation = await env.DB.prepare("SELECT id FROM conversations WHERE channel='whatsapp' AND external_id=?").bind(phone).first<{ id:string }>();
   if (!conversation) throw new Error("Conversation upsert failed");
   const existing = await env.DB.prepare("SELECT status FROM messages WHERE id=?").bind(eventId).first<{ status:string }>();
@@ -206,9 +208,9 @@ export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eve
     await env.DB.prepare("UPDATE checkouts SET processing_token=NULL,processing_started_at=NULL WHERE id=? AND processing_token=?").bind(checkoutId,token).run();
     return { sent:true as const,idempotent:true as const };
   }
-  await env.DB.prepare(`INSERT INTO messages (id,conversation_id,checkout_id,direction,type,body,status,template_name,payload_json,created_at)
-    VALUES (?,?,?,'OUT','template',?,'SEND_PENDING',?, ?,?) ON CONFLICT(id) DO UPDATE SET status='SEND_PENDING',created_at=excluded.created_at`)
-    .bind(eventId,conversation.id,checkoutId,checkout.url,env.META_CHECKOUT_TEMPLATE,JSON.stringify({ resend }),nowIso).run();
+  await env.DB.prepare(`INSERT INTO messages (id,conversation_id,checkout_id,direction,type,body,status,template_name,payload_json,request_id,created_at)
+    VALUES (?,?,?,'OUT','template',?,'SEND_PENDING',?, ?,?,?) ON CONFLICT(id) DO UPDATE SET status='SEND_PENDING',created_at=excluded.created_at`)
+    .bind(eventId,conversation.id,checkoutId,checkout.url,env.META_CHECKOUT_TEMPLATE,JSON.stringify({ resend }),checkout.request_id,nowIso).run();
 
   try {
     const response = await sendCheckoutTemplate(env,phone,checkout.url);
@@ -219,8 +221,8 @@ export async function sendCheckout(env: CheckoutWorkerEnv,checkoutId: string,eve
       env.DB.prepare("UPDATE messages SET external_id=?,status='ACCEPTED' WHERE id=? AND status='SEND_PENDING'").bind(externalId,eventId),
       env.DB.prepare("UPDATE checkouts SET status=CASE WHEN status='SEND_PENDING' THEN 'SENT' ELSE status END,send_status='ACCEPTED',sent_at=?,last_error_code=NULL,last_error=NULL,last_error_at=NULL,processing_token=NULL,processing_started_at=NULL,updated_at=?,version=version+1 WHERE id=? AND processing_token=?")
         .bind(sentAt,sentAt,checkoutId,token),
-      env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,body,created_at) VALUES (?,?,'CHECKOUT_SENT','Checkout aceito pelo WhatsApp',?,?)")
-        .bind(crypto.randomUUID(),checkout.lead_id,checkout.url,sentAt),
+      env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,body,created_at,updated_at) VALUES (?,?,'CHECKOUT_SENT','Checkout aceito pelo WhatsApp',?,?,?)")
+        .bind(crypto.randomUUID(),checkout.lead_id,checkout.url,sentAt,sentAt),
     ];
     if (checkout.stage === "QUALIFICADO") {
       statements.push(

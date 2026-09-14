@@ -23,13 +23,13 @@ export const asaasWebhookSchema = z.object({
 }).passthrough();
 
 export type AsaasWebhook = z.infer<typeof asaasWebhookSchema>;
-export type StoredAsaasWebhook = { id:string;external_id:string;payload_json:string;attempts:number };
+export type StoredAsaasWebhook = { id:string;external_id:string;payload_json:string;attempts:number;request_id?:string|null };
 
-export async function processStoredAsaasWebhook(env: Pick<Env,"DB">,stored: StoredAsaasWebhook) {
+export async function processStoredAsaasWebhook(env: Pick<Env,"DB"|"EVENTS_QUEUE">,stored: StoredAsaasWebhook) {
   const now = new Date().toISOString();
   try {
     const input = asaasWebhookSchema.parse(JSON.parse(stored.payload_json));
-    const result = await applyAsaasPayment(env,input.event,input.payment,input);
+    const result = await applyAsaasPayment(env,input.event,input.payment,input,stored.request_id ?? crypto.randomUUID());
     const divergence = "divergence" in result ? result.divergence : undefined;
     if (!result.found || divergence) {
       const error = divergence ?? "CHECKOUT_NOT_FOUND";

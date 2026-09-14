@@ -7,14 +7,14 @@ export function json(data: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 
-export function errorResponse(error: unknown) {
+export function errorResponse(error: unknown, requestId?: string) {
   if (error instanceof ZodError) {
     return json({ code: "VALIDATION_ERROR", message: "Dados inválidos.", fields: error.flatten().fieldErrors }, { status: 422 });
   }
   if (error instanceof HttpError) {
     return json({ code: error.code, message: error.message }, { status: error.status });
   }
-  console.error(JSON.stringify({ level: "error", event: "request.failed", error: error instanceof Error ? error.message : String(error) }));
+  console.error(JSON.stringify({ level: "error", event: "request.failed", requestId, error: error instanceof Error ? error.message : String(error) }));
   return json({ code: "INTERNAL_ERROR", message: "Não foi possível concluir a solicitação." }, { status: 500 });
 }
 

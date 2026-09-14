@@ -75,3 +75,15 @@ O claim muda imediatamente a conversa para `HUMAN`, mas preserva um lease autom�
 ## D-019 — Ingestão Meta recuperável
 
 Mensagem recebida e cada estado Meta usam identificadores de webhook distintos e outbox persistente antes da publicação na Queue. Repetição é segura, e eventos `sent`, `delivered` e `read` do mesmo message ID não colidem.
+
+## D-020 — Rate limit persistente
+
+Os limites v1 usam buckets atômicos no D1 e armazenam somente hashes de IP/identidade. Isso mantém comportamento determinístico em testes e entre instâncias; um binding nativo de Rate Limiting pode ser adicionado como primeira barreira após a criação dos recursos externos.
+
+## D-021 — Correlação operacional
+
+Cada entrada pública, autorização de checkout e webhook recebe `requestId`, devolvido em `x-request-id` e propagado por D1/outbox até conversa, mensagem e notificação. Payloads reais e segredos não entram em logs nem checkpoints.
+
+## D-022 — Restrições de e-mail
+
+O Worker de eventos aceita somente o remetente `marketing@newwed.com.br` e, até o provisionamento operacional, os dois destinatários públicos conhecidos. A allowlist deve ser substituída pelos usuários aprovados antes do piloto; destinatários fora dela falham de forma visível e retomável pela outbox.

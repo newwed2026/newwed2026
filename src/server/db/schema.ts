@@ -54,6 +54,7 @@ export const leads = sqliteTable("leads", {
   sourceSystem: text("source_system").notNull().default("platform"),
   externalId: text("external_id"),
   dedupeKey: text("dedupe_key").notNull().unique(),
+  requestId: text("request_id"),
   ...timestamps,
 }, (table) => [
   index("leads_normalized_email_idx").on(table.normalizedEmail),
@@ -100,10 +101,17 @@ export const activities = sqliteTable("activities", {
   title: text("title").notNull(),
   body: text("body"),
   actorId: text("actor_id"),
+  assignedTo: text("assigned_to").references(() => users.id),
+  priority: text("priority").notNull().default("NORMAL"),
   dueAt: text("due_at"),
   completedAt: text("completed_at"),
+  completedBy: text("completed_by").references(() => users.id),
   createdAt: text("created_at").notNull(),
-});
+  updatedAt: text("updated_at"),
+}, (table) => [
+  index("activities_due_idx").on(table.completedAt, table.dueAt),
+  index("activities_assigned_idx").on(table.assignedTo, table.completedAt),
+]);
 
 export const assignments = sqliteTable("assignments", {
   id: text("id").primaryKey(),
@@ -133,6 +141,7 @@ export const conversations = sqliteTable("conversations", {
   summaryUpdatedAt: text("summary_updated_at"),
   lastMessageAt: text("last_message_at"),
   optedOutAt: text("opted_out_at"),
+  requestId: text("request_id"),
   ...timestamps,
 }, (table) => [
   uniqueIndex("conversation_external_uidx").on(table.channel, table.externalId),
@@ -155,6 +164,7 @@ export const messages = sqliteTable("messages", {
   lastError: text("last_error"),
   acceptedAt: text("accepted_at"),
   failedAt: text("failed_at"),
+  requestId: text("request_id"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
   uniqueIndex("messages_external_uidx").on(table.externalId),
@@ -196,6 +206,7 @@ export const checkouts = sqliteTable("checkouts", {
   processingStartedAt: text("processing_started_at"),
   retryCount: integer("retry_count").notNull().default(0),
   nextRetryAt: text("next_retry_at"),
+  requestId: text("request_id"),
   version: integer("version").notNull().default(1),
   ...timestamps,
 }, (table) => [
@@ -239,6 +250,7 @@ export const webhookEvents = sqliteTable("webhook_events", {
   attempts: integer("attempts").notNull().default(0),
   lastAttemptAt: text("last_attempt_at"),
   nextRetryAt: text("next_retry_at"),
+  requestId: text("request_id"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
   uniqueIndex("webhook_provider_external_uidx").on(table.provider, table.externalId),
@@ -269,6 +281,7 @@ export const notifications = sqliteTable("notifications", {
   body: text("body").notNull(),
   dedupeKey: text("dedupe_key").notNull().unique(),
   payloadJson: text("payload_json"),
+  requestId: text("request_id"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
   index("notifications_entity_idx").on(table.entityType, table.entityId),
@@ -302,6 +315,7 @@ export const auditLog = sqliteTable("audit_log", {
   beforeJson: text("before_json"),
   afterJson: text("after_json"),
   ip: text("ip"),
+  requestId: text("request_id"),
   createdAt: text("created_at").notNull(),
 });
 
@@ -323,5 +337,15 @@ export const outboxEvents = sqliteTable("outbox_events", {
   publishedAt: text("published_at"),
   nextAttemptAt: text("next_attempt_at"),
   lastError: text("last_error"),
+  requestId: text("request_id"),
   createdAt: text("created_at").notNull(),
 }, (table) => [index("outbox_pending_idx").on(table.publishedAt, table.nextAttemptAt, table.createdAt)]);
+
+export const rateLimitBuckets = sqliteTable("rate_limit_buckets", {
+  key: text("key").primaryKey(),
+  scope: text("scope").notNull(),
+  windowStartedAt: text("window_started_at").notNull(),
+  count: integer("count").notNull().default(0),
+  expiresAt: text("expires_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [index("rate_limit_expiry_idx").on(table.expiresAt)]);
