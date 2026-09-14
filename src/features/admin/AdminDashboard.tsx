@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Columns3,List,MessageSquare,RefreshCw,Search,X } from "lucide-react";
+import { BarChart3,CalendarClock,Columns3,List,MessageSquare,RefreshCw,Search,X } from "lucide-react";
 import { AdminInbox } from "@/features/admin/AdminInbox";
+import { AdminNotifications } from "@/features/admin/AdminNotifications";
+import { AdminReports } from "@/features/admin/AdminReports";
 import { canManuallyTransition } from "@/features/pipeline/model";
 
 const stages = ["NOVO","EM_ATENDIMENTO","QUALIFICADO","CHECKOUT_ENVIADO","AGUARDANDO_PAGAMENTO","PAGO","NUTRICAO","PERDIDO","CANCELADO"] as const;
 type Stage = typeof stages[number];
-type Lead = { id: string; name: string; email: string; phone: string; company?: string; city_state?: string; stage: Stage; edition_name?: string; created_at: string };
+type Lead = { id:string;name:string;email:string;phone:string;company?:string;city_state?:string;stage:Stage;edition_id?:string;edition_name?:string;assignee_id?:string;assignee_name?:string;origin?:string;next_task_due?:string;created_at:string };
 type Detail = { lead: Record<string, unknown>; answers: Array<Record<string, unknown>>; history: Array<Record<string, unknown>>; activities: Array<Record<string, unknown>>; conversations: Array<Record<string, unknown>>; checkouts: Array<Record<string, unknown>> };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -23,19 +25,29 @@ export function AdminDashboard() {
   const [leads,setLeads] = useState<Lead[]>([]);
   const [query,setQuery] = useState("");
   const [view,setView] = useState<"kanban"|"list">("kanban");
-  const [workspace,setWorkspace] = useState<"pipeline"|"inbox">("pipeline");
+  const [workspace,setWorkspace] = useState<"pipeline"|"inbox"|"reports">("pipeline");
   const [selected,setSelected] = useState<Detail|null>(null);
+  const [users,setUsers] = useState<Array<{id:string;name:string}>>([]);
+  const [editions,setEditions] = useState<Array<{id:string;name?:string;destination?:string}>>([]);
+  const [stageFilter,setStageFilter] = useState("");
+  const [editionFilter,setEditionFilter] = useState("");
+  const [assigneeFilter,setAssigneeFilter] = useState("");
+  const [originFilter,setOriginFilter] = useState("");
+  const [from,setFrom] = useState("");
+  const [to,setTo] = useState("");
+  const [overdue,setOverdue] = useState(false);
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { setLeads((await api<{items: Lead[]}>(`/api/admin/leads?q=${encodeURIComponent(query)}`)).items); }
+    try { const params=new URLSearchParams({q:query});if(stageFilter)params.set("stage",stageFilter);if(editionFilter)params.set("editionId",editionFilter);if(assigneeFilter)params.set("assigneeId",assigneeFilter);if(originFilter)params.set("origin",originFilter);if(from)params.set("from",from);if(to)params.set("to",`${to}T23:59:59.999Z`);if(overdue)params.set("overdue","true");setLeads((await api<{items: Lead[]}>(`/api/admin/leads?${params}`)).items); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível carregar os leads."); }
     finally { setLoading(false); }
-  },[query]);
+  },[query,stageFilter,editionFilter,assigneeFilter,originFilter,from,to,overdue]);
 
   useEffect(() => { const timeout = setTimeout(load,250); return () => clearTimeout(timeout); },[load]);
+  useEffect(()=>{Promise.all([api<{users:Array<{id:string;name:string}>}>("/api/admin/users"),api<{editions:Array<{id:string;name?:string;destination?:string}>}>("/api/catalog/editions")]).then(([people,catalog])=>{setUsers(people.users);setEditions(Array.from(new Map(catalog.editions.map((edition)=>[edition.id,edition])).values()));}).catch(()=>undefined);},[]);
 
   const grouped = useMemo(() => Object.fromEntries(stages.map((stage) => [stage,leads.filter((lead) => lead.stage === stage)])) as Record<Stage,Lead[]>,[leads]);
   const openLead = async (id: string) => { try { setSelected(await api<Detail>(`/api/admin/leads/${id}`)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Erro"); } };
@@ -72,15 +84,18 @@ export function AdminDashboard() {
         <div className="flex items-center gap-2">
           <button onClick={() => setWorkspace("pipeline")} aria-label="Pipeline" className={`flex items-center gap-2 px-3 py-2 text-[9px] uppercase tracking-[0.12em] ${workspace === "pipeline" ? "bg-white text-[#191010]" : "text-white/65"}`}><Columns3 size={16}/> Pipeline</button>
           <button onClick={() => setWorkspace("inbox")} aria-label="Inbox" className={`flex items-center gap-2 px-3 py-2 text-[9px] uppercase tracking-[0.12em] ${workspace === "inbox" ? "bg-white text-[#191010]" : "text-white/65"}`}><MessageSquare size={16}/> Inbox</button>
+          <button onClick={() => setWorkspace("reports")} aria-label="Relatórios" className={`flex items-center gap-2 px-3 py-2 text-[9px] uppercase tracking-[0.12em] ${workspace === "reports" ? "bg-white text-[#191010]" : "text-white/65"}`}><BarChart3 size={16}/> Relatórios</button>
+          <AdminNotifications/>
           {workspace === "pipeline" && <><button onClick={() => setView("kanban")} aria-label="Kanban" className={`p-2 ${view === "kanban" ? "text-white" : "text-white/45"}`}><Columns3 size={17}/></button><button onClick={() => setView("list")} aria-label="Lista" className={`p-2 ${view === "list" ? "text-white" : "text-white/45"}`}><List size={17}/></button><button onClick={load} aria-label="Atualizar" className="p-2 text-white/65 hover:text-white"><RefreshCw size={17}/></button></>}
         </div>
       </div>
     </header>
-    {workspace === "inbox" ? <AdminInbox/> : <section className="mx-auto max-w-[1600px] px-5 py-7 md:px-8">
+    {workspace === "inbox" ? <AdminInbox/> : workspace === "reports" ? <AdminReports/> : <section className="mx-auto max-w-[1600px] px-5 py-7 md:px-8">
       <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div><p className="text-[9px] uppercase tracking-[0.24em] text-[#2E8E8E]">Pipeline</p><h1 className="serif mt-2 text-4xl font-light md:text-5xl">Relacionamentos em movimento.</h1></div>
         <label className="flex min-w-72 items-center gap-3 border-b border-black/20 py-2"><Search size={16} className="text-black/40"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nome, e-mail ou telefone" className="w-full bg-transparent text-sm outline-none"/></label>
       </div>
+      <div className="mb-6 grid gap-2 border-y border-black/10 py-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"><FilterSelect label="Etapa" value={stageFilter} onChange={setStageFilter} options={stages.map((stage)=>({value:stage,label:stageLabel(stage)}))}/><FilterSelect label="Edição" value={editionFilter} onChange={setEditionFilter} options={editions.map((edition)=>({value:edition.id,label:edition.name??edition.destination??edition.id}))}/><FilterSelect label="Responsável" value={assigneeFilter} onChange={setAssigneeFilter} options={users.map((user)=>({value:user.id,label:user.name}))}/><label className="text-[8px] uppercase tracking-[0.14em] text-black/40">Origem<input value={originFilter} onChange={(event)=>setOriginFilter(event.target.value)} placeholder="Ex.: instagram" className="mt-1 block w-full border border-black/15 bg-white px-3 py-2 text-xs normal-case tracking-normal text-black"/></label><DateFilter label="De" value={from} onChange={setFrom}/><DateFilter label="Até" value={to} onChange={setTo}/><label className="flex items-end gap-2 border border-black/10 bg-white px-3 py-2 text-[9px] uppercase tracking-[0.12em]"><input type="checkbox" checked={overdue} onChange={(event)=>setOverdue(event.target.checked)}/><CalendarClock size={14}/> Tarefa vencida</label></div>
       {error && <div className="mb-5 border border-[#7A2535]/30 bg-white p-4 text-sm text-[#7A2535]">{error}</div>}
       {loading ? <div className="py-20 text-center text-xs uppercase tracking-[0.2em] text-black/40">Carregando pipeline…</div> : view === "kanban" ?
         <div className="flex snap-x gap-3 overflow-x-auto pb-5">{stages.map((stage) => <section key={stage} className="w-[285px] shrink-0 snap-start">
@@ -95,7 +110,7 @@ export function AdminDashboard() {
 
 function LeadCard({lead,onClick}:{lead:Lead;onClick:()=>void}) {
   return <button onClick={onClick} className="w-full border border-black/10 bg-white p-4 text-left shadow-[0_8px_20px_rgba(25,16,16,0.04)] transition hover:-translate-y-0.5 hover:border-[#7A2535]/40">
-    <div className="serif text-xl leading-tight">{lead.name}</div><div className="mt-2 text-[11px] text-black/50">{lead.company || lead.email}</div><div className="mt-4 border-t border-black/5 pt-3 text-[9px] uppercase tracking-[0.14em] text-[#2E8E8E]">{lead.edition_name || "Sem edição"}</div>
+    <div className="serif text-xl leading-tight">{lead.name}</div><div className="mt-2 text-[11px] text-black/50">{lead.company || lead.email}</div><div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/5 pt-3 text-[9px] uppercase tracking-[0.1em] text-[#2E8E8E]"><span>{lead.edition_name || "Sem edição"}</span><span className="text-right text-black/40">{lead.assignee_name||"Sem responsável"}</span>{lead.next_task_due&&<span className={`col-span-2 ${new Date(lead.next_task_due)<new Date()?"text-[#7A2535]":"text-black/40"}`}>Próxima tarefa: {new Date(lead.next_task_due).toLocaleString("pt-BR")}</span>}</div>
   </button>;
 }
 
@@ -105,12 +120,16 @@ function DetailPanel({detail,onClose,onTransition,onRefresh}:{detail:Detail;onCl
   const [editions,setEditions] = useState<Array<{id:string;price_batch_id:string;price_batch_name:string;amount_cents:number;installment_count:number}>>([]);
   const [assignee,setAssignee] = useState("");
   const [task,setTask] = useState("");
+  const [taskDue,setTaskDue] = useState("");
+  const [taskAssignee,setTaskAssignee] = useState("");
+  const [taskPriority,setTaskPriority] = useState("NORMAL");
   const [method,setMethod] = useState<"PIX"|"CREDIT_CARD">("PIX");
   const [installmentCount,setInstallmentCount] = useState(1);
   const [notice,setNotice] = useState("");
   useEffect(() => { Promise.all([api<{users:Array<{id:string;name:string}>}>("/api/admin/users"),api<{editions:Array<{id:string;price_batch_id:string;price_batch_name:string;amount_cents:number;installment_count:number}>}>("/api/catalog/editions")]).then(([people,catalog]) => { setUsers(people.users);setEditions(catalog.editions); }).catch(() => undefined); },[]);
   const assign = async () => { if (!assignee) return; await api(`/api/admin/leads/${lead.id}/assign`,{method:"POST",body:JSON.stringify({userId:assignee})});setNotice("Responsável atualizado.");await onRefresh(); };
-  const createTask = async () => { if (!task.trim()) return; await api(`/api/admin/leads/${lead.id}/activities`,{method:"POST",body:JSON.stringify({title:task})});setTask("");setNotice("Tarefa criada.");await onRefresh(); };
+  const createTask = async () => { if (!task.trim()) return; await api(`/api/admin/leads/${lead.id}/activities`,{method:"POST",body:JSON.stringify({title:task,dueAt:taskDue?new Date(taskDue).toISOString():undefined,assignedTo:taskAssignee||undefined,priority:taskPriority})});setTask("");setTaskDue("");setNotice("Tarefa criada.");await onRefresh(); };
+  const completeTask = async (id:string,completed:boolean) => { await api(`/api/admin/activities/${id}`,{method:"PATCH",body:JSON.stringify({completed})});setNotice(completed?"Tarefa concluída.":"Tarefa reaberta.");await onRefresh(); };
   const createCheckout = async () => {
     const offer = editions.find((edition) => edition.id === lead.edition_id);
     if (!offer) { setNotice("Não há lote ativo para esta edição.");return; }
@@ -128,11 +147,11 @@ function DetailPanel({detail,onClose,onTransition,onRefresh}:{detail:Detail;onCl
         {notice && <div className="border border-[#2E8E8E]/30 bg-[#F7F4EE] p-3 text-xs leading-relaxed text-[#0A2B28] break-all">{notice}</div>}
         <section className="grid gap-4 border-y border-black/10 py-6 md:grid-cols-2">
           <div><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Responsável</h3><div className="flex gap-2"><select value={assignee} onChange={(event) => setAssignee(event.target.value)} className="min-w-0 flex-1 border border-black/15 bg-white px-3 py-2 text-xs"><option value="">Selecionar</option>{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={assign} className="bg-[#191010] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Atribuir</button></div></div>
-          <div><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Nova tarefa</h3><div className="flex gap-2"><input value={task} onChange={(event) => setTask(event.target.value)} placeholder="Ex.: Retornar amanhã" className="min-w-0 flex-1 border border-black/15 px-3 py-2 text-xs"/><button onClick={createTask} className="bg-[#191010] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Criar</button></div></div>
+          <div><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Nova tarefa</h3><div className="grid grid-cols-2 gap-2"><input value={task} onChange={(event) => setTask(event.target.value)} placeholder="Ex.: Retornar amanhã" className="col-span-2 min-w-0 border border-black/15 px-3 py-2 text-xs"/><input aria-label="Prazo da tarefa" type="datetime-local" value={taskDue} onChange={(event)=>setTaskDue(event.target.value)} className="border border-black/15 px-2 py-2 text-xs"/><select aria-label="Prioridade" value={taskPriority} onChange={(event)=>setTaskPriority(event.target.value)} className="border border-black/15 bg-white px-2 py-2 text-xs"><option value="LOW">Baixa</option><option value="NORMAL">Normal</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option></select><select aria-label="Responsável da tarefa" value={taskAssignee} onChange={(event)=>setTaskAssignee(event.target.value)} className="border border-black/15 bg-white px-2 py-2 text-xs"><option value="">Eu</option>{users.map((user)=><option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={createTask} className="bg-[#191010] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Criar</button></div></div>
         </section>
         <section className="border border-[#7A2535]/25 bg-[#7A2535]/[0.04] p-5"><h3 className="text-[10px] uppercase tracking-[0.2em] text-[#7A2535]">Checkout autorizado</h3><p className="mt-2 text-xs text-black/55">Disponível somente para gestores e administradores quando o lead estiver qualificado. A cobrança e o envio são processados em segundo plano.</p><div className="mt-4 flex flex-wrap gap-2"><select value={method} onChange={(event) => { const next = event.target.value as "PIX"|"CREDIT_CARD";setMethod(next);if (next === "PIX") setInstallmentCount(1); }} className="border border-black/15 bg-white px-3 py-2 text-xs"><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select>{method === "CREDIT_CARD" && <select aria-label="Parcelas" value={installmentCount} onChange={(event) => setInstallmentCount(Number(event.target.value))} className="border border-black/15 bg-white px-3 py-2 text-xs">{Array.from({length:Math.max(1,editions.find((edition) => edition.id === lead.edition_id)?.installment_count ?? 1)},(_,index) => index + 1).map((count) => <option key={count} value={count}>{count}x</option>)}</select>}<button onClick={createCheckout} disabled={lead.stage !== "QUALIFICADO"} className="bg-[#7A2535] px-4 py-2 text-[9px] uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:opacity-35">Criar checkout</button></div></section>
         <Timeline title="Timeline" rows={detail.history} primary="to_stage" secondary="reason"/>
-        <Timeline title="Tarefas e atividades" rows={detail.activities} primary="title" secondary="body"/>
+        <TaskTimeline rows={detail.activities} onComplete={completeTask}/>
         <Timeline title="Conversas" rows={detail.conversations} primary="channel" secondary="external_id"/>
         <Timeline title="Pagamentos" rows={detail.checkouts} primary="status" secondary="url"/>
         <Timeline title="Respostas da qualificação" rows={detail.answers.map((row) => ({...row,answers_json:prettyJson(row.answers_json)}))} primary="answers_json"/>
@@ -143,4 +162,7 @@ function DetailPanel({detail,onClose,onTransition,onRefresh}:{detail:Detail;onCl
 
 function Info({label,value}:{label:string;value:unknown}) { return <div><div className="text-[8px] uppercase tracking-[0.2em] text-black/40">{label}</div><div className="mt-1 text-sm">{value ? String(value) : "—"}</div></div>; }
 function Timeline({title,rows,primary,secondary}:{title:string;rows:Array<Record<string,unknown>>;primary:string;secondary?:string}) { return <section><h3 className="mb-4 text-[10px] uppercase tracking-[0.2em] text-black/45">{title}</h3>{rows.length ? <div className="border-l border-[#7A2535]/25 pl-5">{rows.map((row,index) => <div key={String(row.id ?? index)} className="relative pb-5 before:absolute before:-left-[23px] before:top-1 before:size-[5px] before:rounded-full before:bg-[#7A2535]"><div className="text-sm font-medium whitespace-pre-wrap">{String(row[primary] ?? "—")}</div>{secondary && row[secondary] ? <div className="mt-1 text-xs leading-relaxed text-black/55">{String(row[secondary])}</div> : null}<div className="mt-1 text-[9px] uppercase tracking-[0.12em] text-black/35">{row.created_at ? new Date(String(row.created_at)).toLocaleString("pt-BR") : ""}</div></div>)}</div> : <p className="text-sm text-black/35">Nenhum registro.</p>}</section>; }
+function TaskTimeline({rows,onComplete}:{rows:Array<Record<string,unknown>>;onComplete:(id:string,completed:boolean)=>Promise<void>}) {return <section><h3 className="mb-4 text-[10px] uppercase tracking-[0.2em] text-black/45">Tarefas e atividades</h3>{rows.length?<div className="space-y-2">{rows.map((row,index)=>{const isTask=row.type==="TASK";const completed=Boolean(row.completed_at);return <article key={String(row.id??index)} className={`border p-3 ${completed?"border-black/5 bg-black/[0.02] opacity-60":"border-black/10"}`}><div className="flex items-start justify-between gap-3"><div><div className={`text-sm font-medium ${completed?"line-through":""}`}>{String(row.title??"—")}</div>{Boolean(row.body)&&<p className="mt-1 text-xs text-black/55">{String(row.body)}</p>}<div className="mt-2 flex flex-wrap gap-3 text-[9px] uppercase tracking-[0.1em] text-black/40">{Boolean(row.priority)&&<span>{String(row.priority)}</span>}{Boolean(row.assignee_name)&&<span>{String(row.assignee_name)}</span>}{Boolean(row.due_at)&&<span className={!completed&&new Date(String(row.due_at))<new Date()?"text-[#7A2535]":""}>{new Date(String(row.due_at)).toLocaleString("pt-BR")}</span>}</div></div>{isTask&&<button onClick={()=>onComplete(String(row.id),!completed)} className="shrink-0 border border-black/15 px-2 py-1 text-[8px] uppercase tracking-[0.1em]">{completed?"Reabrir":"Concluir"}</button>}</div></article>})}</div>:<p className="text-sm text-black/35">Nenhum registro.</p>}</section>}
+function FilterSelect({label,value,onChange,options}:{label:string;value:string;onChange:(value:string)=>void;options:Array<{value:string;label:string}>}) {return <label className="text-[8px] uppercase tracking-[0.14em] text-black/40">{label}<select value={value} onChange={(event)=>onChange(event.target.value)} className="mt-1 block w-full border border-black/15 bg-white px-3 py-2 text-xs normal-case tracking-normal text-black"><option value="">Todos</option>{options.map((option)=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
+function DateFilter({label,value,onChange}:{label:string;value:string;onChange:(value:string)=>void}) {return <label className="text-[8px] uppercase tracking-[0.14em] text-black/40">{label}<input type="date" value={value} onChange={(event)=>onChange(event.target.value)} className="mt-1 block w-full border border-black/15 bg-white px-3 py-2 text-xs text-black"/></label>}
 function prettyJson(value: unknown) { try { return JSON.stringify(JSON.parse(String(value)),null,2); } catch { return String(value ?? ""); } }

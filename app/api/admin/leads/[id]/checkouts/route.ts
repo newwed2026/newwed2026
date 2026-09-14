@@ -4,6 +4,8 @@ import { checkoutSchema } from "@/features/leads/schemas";
 import { requireAccessUser } from "@/server/auth/access";
 import { errorResponse,HttpError,json,requireIdempotencyKey } from "@/server/http";
 import { publishOutbox } from "@/server/outbox";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { requestIdFrom,responseWithRequestId } from "@/server/request-context";
 
 type StoredResponse = { response_json:string };
 
@@ -12,13 +14,15 @@ async function priorResponse(key: string) {
 }
 
 export async function POST(request: Request,{ params }:{ params:Promise<{ id:string }> }) {
+  const requestId = requestIdFrom(request);
   try {
     const actor = await requireAccessUser(request,["admin","gestor"]);
+    const { id:leadId } = await params;
     const idempotencyKey = requireIdempotencyKey(request);
     const prior = await priorResponse(idempotencyKey);
-    if (prior) return json(JSON.parse(prior.response_json),{ status:202 });
+    if (prior) return responseWithRequestId(json(JSON.parse(prior.response_json),{ status:202 }),requestId);
+    await enforceRateLimit(env,{scope:"checkout.create",identity:`${actor.id}:${leadId}`,limit:5,windowSeconds:600});
 
-    const { id:leadId } = await params;
     const input = checkoutSchema.parse(await request.json());
     const lead = await env.DB.prepare("SELECT id,stage,edition_id FROM leads WHERE id=?").bind(leadId)
       .first<{ id:string;stage:string;edition_id:string|null }>();
@@ -56,19 +60,19 @@ export async function POST(request: Request,{ params }:{ params:Promise<{ id:str
           AND EXISTS (SELECT 1 FROM leads WHERE id=? AND stage='QUALIFICADO' AND edition_id=?)
           AND NOT EXISTS (SELECT 1 FROM checkouts WHERE lead_id=? AND reservation_released_at IS NULL AND status NOT IN ('PAID','OVERDUE','CANCELLED','REFUNDED'))`)
           .bind(now,input.editionId,input.editionId,leadId,input.editionId,leadId),
-        env.DB.prepare(`INSERT INTO checkouts (id,lead_id,edition_id,price_batch_id,provider,method,installment_count,amount_cents,status,financial_status,send_status,idempotency_key,authorized_by,expires_at,created_at,updated_at)
-          SELECT ?,?,?,?,'asaas',?,?,?,'CREATING','NOT_STARTED','NOT_REQUESTED',?,?,?,?,? WHERE changes()=1`)
-          .bind(checkoutId,leadId,input.editionId,input.priceBatchId,input.method,input.installmentCount,offer.amount_cents,idempotencyKey,actor.id,expiresAt,now,now),
-        env.DB.prepare("INSERT INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,created_at) SELECT ?,'checkout.create',? ,?,?,0,? WHERE changes()=1")
-          .bind(outboxId,checkoutId,`checkout.create:${checkoutId}`,payload,now),
+        env.DB.prepare(`INSERT INTO checkouts (id,lead_id,edition_id,price_batch_id,provider,method,installment_count,amount_cents,status,financial_status,send_status,idempotency_key,authorized_by,expires_at,request_id,created_at,updated_at)
+          SELECT ?,?,?,?,'asaas',?,?,?,'CREATING','NOT_STARTED','NOT_REQUESTED',?,?,?,?,?,? WHERE changes()=1`)
+          .bind(checkoutId,leadId,input.editionId,input.priceBatchId,input.method,input.installmentCount,offer.amount_cents,idempotencyKey,actor.id,expiresAt,requestId,now,now),
+        env.DB.prepare("INSERT INTO outbox_events (id,type,aggregate_id,dedupe_key,payload_json,attempts,request_id,created_at) SELECT ?,'checkout.create',? ,?,?,0,?,? WHERE changes()=1")
+          .bind(outboxId,checkoutId,`checkout.create:${checkoutId}`,payload,requestId,now),
         env.DB.prepare("INSERT INTO idempotency_keys (key,scope,resource_id,response_json,created_at) SELECT ?,'checkout',?,?,? WHERE changes()=1")
           .bind(idempotencyKey,checkoutId,JSON.stringify(responseBody),now),
-        env.DB.prepare("INSERT INTO audit_log (id,actor_id,action,entity_type,entity_id,after_json,ip,created_at) SELECT ?,?,'checkout.reserve','checkout',?,?,?,? WHERE changes()=1")
-          .bind(crypto.randomUUID(),actor.id,checkoutId,JSON.stringify(responseBody),request.headers.get("cf-connecting-ip"),now),
+        env.DB.prepare("INSERT INTO audit_log (id,actor_id,action,entity_type,entity_id,after_json,ip,request_id,created_at) SELECT ?,?,'checkout.reserve','checkout',?,?,?,?,? WHERE changes()=1")
+          .bind(crypto.randomUUID(),actor.id,checkoutId,JSON.stringify(responseBody),request.headers.get("cf-connecting-ip"),requestId,now),
       ]);
     } catch (error) {
       const concurrent = await priorResponse(idempotencyKey);
-      if (concurrent) return json(JSON.parse(concurrent.response_json),{ status:202 });
+      if (concurrent) return responseWithRequestId(json(JSON.parse(concurrent.response_json),{ status:202 }),requestId);
       const reused = await env.DB.prepare("SELECT scope FROM idempotency_keys WHERE key=?").bind(idempotencyKey).first<{ scope:string }>();
       if (reused) throw new HttpError(409,"IDEMPOTENCY_KEY_REUSED","A chave de idempotência já foi usada em outra operação.");
       throw error;
@@ -76,7 +80,7 @@ export async function POST(request: Request,{ params }:{ params:Promise<{ id:str
 
     if ((results[0].meta.changes ?? 0) !== 1) {
       const concurrent = await priorResponse(idempotencyKey);
-      if (concurrent) return json(JSON.parse(concurrent.response_json),{ status:202 });
+      if (concurrent) return responseWithRequestId(json(JSON.parse(concurrent.response_json),{ status:202 }),requestId);
       const active = await env.DB.prepare("SELECT id FROM checkouts WHERE lead_id=? AND reservation_released_at IS NULL AND status NOT IN ('PAID','OVERDUE','CANCELLED','REFUNDED') LIMIT 1")
         .bind(leadId).first();
       if (active) throw new HttpError(409,"ACTIVE_CHECKOUT_EXISTS","Já existe um checkout ativo para este lead.");
@@ -86,7 +90,7 @@ export async function POST(request: Request,{ params }:{ params:Promise<{ id:str
       throw new HttpError(409,"CHECKOUT_CONFLICT","O lead ou a disponibilidade mudaram. Atualize a tela e tente novamente.");
     }
 
-    await publishOutbox(env,{ id:outboxId,type:"checkout.create",checkoutId });
-    return json(responseBody,{ status:202 });
-  } catch (error) { return errorResponse(error); }
+    await publishOutbox(env,{ id:outboxId,type:"checkout.create",checkoutId,requestId });
+    return responseWithRequestId(json(responseBody,{ status:202 }),requestId);
+  } catch (error) { return responseWithRequestId(errorResponse(error,requestId),requestId); }
 }

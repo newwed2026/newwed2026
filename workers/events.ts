@@ -4,10 +4,11 @@ import { getAsaasPayment } from "@/server/integrations/asaas";
 import { applyAsaasPayment,asaasStatusEvent } from "@/server/integrations/asaas-payment";
 import { processStoredAsaasWebhook,type StoredAsaasWebhook } from "@/server/integrations/asaas-webhook";
 import { publishOutbox } from "@/server/outbox";
+import { processNotificationEmail,type EmailEnv } from "@/server/notifications";
 import type { RuntimeSecrets } from "@/server/secrets";
 
-type EventBody = { type:string;externalId?:string;checkoutId?:string;providerPaymentId?:string;id?:string;leadId?:string;resend?:boolean;conversationId?:string;messageId?:string;targetCount?:number };
-type WorkerEnv = Env & RuntimeSecrets;
+type EventBody = { type:string;externalId?:string;checkoutId?:string;providerPaymentId?:string;id?:string;leadId?:string;resend?:boolean;conversationId?:string;messageId?:string;targetCount?:number;notificationId?:string;userId?:string;requestId?:string };
+type WorkerEnv = Env & RuntimeSecrets & EmailEnv;
 
 async function handleStatus(env: WorkerEnv, externalId: string) {
   const stored = await env.DB.prepare("SELECT id,payload_json FROM webhook_events WHERE provider='meta' AND external_id=?").bind(externalId).first<{ id: string; payload_json: string }>();
@@ -48,17 +49,20 @@ async function handleEvent(env: WorkerEnv, body: EventBody) {
   if (body.type === "conversation.manual.send" && body.messageId) return processManualConversationMessage(env,body.messageId);
   if (body.type === "conversation.summarize" && body.conversationId && body.targetCount) return processConversationSummary(env,body.conversationId,body.targetCount);
   if (body.type === "asaas.reconcile" && body.providerPaymentId) return reconcileAsaas(env,body.providerPaymentId);
+  if (body.type === "notification.email" && body.id && body.notificationId && body.userId) return processNotificationEmail(env,body.id,body.notificationId,body.userId);
   if (body.type === "lead.submitted" && body.leadId) {
-    await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,created_at) VALUES (?,?,'LEAD_CREATED','Pré-inscrição recebida',?)")
-      .bind(crypto.randomUUID(),body.leadId,new Date().toISOString()).run();
+    const now = new Date().toISOString();
+    await env.DB.prepare("INSERT INTO activities (id,lead_id,type,title,created_at,updated_at) VALUES (?,?,'LEAD_CREATED','Pré-inscrição recebida',?,?)")
+      .bind(crypto.randomUUID(),body.leadId,now,now).run();
   }
 }
 
 export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
-      try { await handleEvent(env as WorkerEnv,message.body as EventBody); message.ack(); }
-      catch (error) { console.error(JSON.stringify({ level: "error", event: "queue.failed", messageId: message.id, error: error instanceof Error ? error.message : String(error) })); message.retry(); }
+      const body = message.body as EventBody;
+      try { await handleEvent(env as WorkerEnv,body); message.ack(); }
+      catch (error) { console.error(JSON.stringify({ level: "error", event: "queue.failed", messageId: message.id, requestId:body.requestId, error: error instanceof Error ? error.message : String(error) })); message.retry(); }
     }
   },
   async scheduled(_controller, env) {
@@ -82,12 +86,13 @@ export default {
     for (const event of pending.results) {
       await publishOutbox(workerEnv,{ id:event.id,type:event.type,...JSON.parse(event.payload_json) });
     }
-    const pendingWebhooks = await workerEnv.DB.prepare("SELECT id,external_id,payload_json,attempts FROM webhook_events WHERE provider='asaas' AND processed_at IS NULL AND attempts<10 AND (next_retry_at IS NULL OR next_retry_at<=?) ORDER BY created_at LIMIT 50")
+    const pendingWebhooks = await workerEnv.DB.prepare("SELECT id,external_id,payload_json,attempts,request_id FROM webhook_events WHERE provider='asaas' AND processed_at IS NULL AND attempts<10 AND (next_retry_at IS NULL OR next_retry_at<=?) ORDER BY created_at LIMIT 50")
       .bind(now).all<StoredAsaasWebhook>();
     for (const webhook of pendingWebhooks.results) {
       await processStoredAsaasWebhook(workerEnv,webhook);
     }
     await expireCheckoutReservations(workerEnv);
+    await workerEnv.DB.prepare("DELETE FROM rate_limit_buckets WHERE expires_at<?").bind(now).run();
     if (workerEnv.ASAAS_API_KEY) {
       const pendingPayments = await workerEnv.DB.prepare("SELECT provider_payment_id FROM payments WHERE provider_payment_id IS NOT NULL AND status IN ('PENDING','OVERDUE') ORDER BY updated_at LIMIT 50")
         .all<{ provider_payment_id: string }>();
