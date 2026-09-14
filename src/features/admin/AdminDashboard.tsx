@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Columns3, List, RefreshCw, Search, X } from "lucide-react";
+import { canManuallyTransition } from "@/features/pipeline/model";
 
 const stages = ["NOVO","EM_ATENDIMENTO","QUALIFICADO","CHECKOUT_ENVIADO","AGUARDANDO_PAGAMENTO","PAGO","NUTRICAO","PERDIDO","CANCELADO"] as const;
 type Stage = typeof stages[number];
@@ -39,11 +40,27 @@ export function AdminDashboard() {
   const refreshSelected = async () => { if (selected) setSelected(await api<Detail>(`/api/admin/leads/${selected.lead.id}`)); };
   const transition = async (stage: Stage) => {
     if (!selected) return;
-    const reason = window.prompt(`Motivo da mudança para ${stageLabel(stage)}:`);
-    if (!reason) return;
-    await api(`/api/admin/leads/${selected.lead.id}/transitions`,{ method:"POST",body:JSON.stringify({stage,reason}) });
-    setSelected(await api<Detail>(`/api/admin/leads/${selected.lead.id}`));
-    await load();
+    const payload: { stage:Stage;reason?:string;nextAction?:string;nextActionAt?:string } = { stage };
+    if (stage === "PERDIDO" || stage === "CANCELADO") {
+      const reason = window.prompt(`Motivo da mudança para ${stageLabel(stage)}:`)?.trim();
+      if (!reason) return;
+      payload.reason = reason;
+    }
+    if (stage === "NUTRICAO") {
+      const nextAction = window.prompt("Qual é a próxima ação?")?.trim();
+      if (!nextAction) return;
+      const scheduledFor = window.prompt("Quando executar? Use data e hora, por exemplo 2026-10-01 09:00")?.trim();
+      if (!scheduledFor) return;
+      const parsedDate = new Date(scheduledFor);
+      if (Number.isNaN(parsedDate.getTime())) { setError("Informe uma data e hora válidas para a próxima ação.");return; }
+      payload.nextAction = nextAction;
+      payload.nextActionAt = parsedDate.toISOString();
+    }
+    try {
+      await api(`/api/admin/leads/${selected.lead.id}/transitions`,{ method:"POST",body:JSON.stringify(payload) });
+      setSelected(await api<Detail>(`/api/admin/leads/${selected.lead.id}`));
+      await load();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível mover o lead."); }
   };
 
   return <main className="min-h-screen bg-[#F7F4EE] text-[#191010]">
@@ -104,7 +121,7 @@ function DetailPanel({detail,onClose,onTransition,onRefresh}:{detail:Detail;onCl
       <div className="sticky top-0 z-10 flex items-start justify-between border-b border-black/10 bg-white px-6 py-5"><div><p className="text-[9px] uppercase tracking-[0.2em] text-[#2E8E8E]">Ficha do lead</p><h2 className="serif mt-2 text-3xl">{String(lead.name)}</h2></div><button onClick={onClose} aria-label="Fechar" className="p-2"><X/></button></div>
       <div className="space-y-9 p-6">
         <section className="grid gap-4 border-b border-black/10 pb-7 sm:grid-cols-2"><Info label="E-mail" value={lead.email}/><Info label="WhatsApp" value={lead.phone}/><Info label="Empresa" value={lead.company}/><Info label="Cidade" value={lead.city_state}/><Info label="Edição" value={lead.edition_name}/><Info label="Etapa atual" value={stageLabel(String(lead.stage))}/></section>
-        <section><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Mover no pipeline</h3><div className="flex flex-wrap gap-2">{stages.filter((stage) => stage !== lead.stage).map((stage) => <button key={stage} onClick={() => onTransition(stage)} className="border border-black/15 px-3 py-2 text-[9px] uppercase tracking-[0.12em] hover:border-[#7A2535] hover:text-[#7A2535]">{stageLabel(stage)}</button>)}</div></section>
+        <section><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Mover no pipeline</h3><div className="flex flex-wrap gap-2">{stages.filter((stage) => stage !== lead.stage && canManuallyTransition(lead.stage as Stage,stage)).map((stage) => <button key={stage} onClick={() => onTransition(stage)} className="border border-black/15 px-3 py-2 text-[9px] uppercase tracking-[0.12em] hover:border-[#7A2535] hover:text-[#7A2535]">{stageLabel(stage)}</button>)}</div></section>
         {notice && <div className="border border-[#2E8E8E]/30 bg-[#F7F4EE] p-3 text-xs leading-relaxed text-[#0A2B28] break-all">{notice}</div>}
         <section className="grid gap-4 border-y border-black/10 py-6 md:grid-cols-2">
           <div><h3 className="mb-3 text-[10px] uppercase tracking-[0.2em] text-black/45">Responsável</h3><div className="flex gap-2"><select value={assignee} onChange={(event) => setAssignee(event.target.value)} className="min-w-0 flex-1 border border-black/15 bg-white px-3 py-2 text-xs"><option value="">Selecionar</option>{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={assign} className="bg-[#191010] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-white">Atribuir</button></div></div>

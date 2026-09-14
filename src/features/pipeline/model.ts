@@ -14,6 +14,16 @@ export const pipelineStageSchema = z.enum([
 
 export type PipelineStage = z.infer<typeof pipelineStageSchema>;
 
+export const humanManagedStageSchema = z.enum([
+  "EM_ATENDIMENTO",
+  "QUALIFICADO",
+  "NUTRICAO",
+  "PERDIDO",
+  "CANCELADO",
+]);
+
+export type HumanManagedStage = z.infer<typeof humanManagedStageSchema>;
+
 const transitions: Record<PipelineStage, readonly PipelineStage[]> = {
   NOVO: ["EM_ATENDIMENTO", "NUTRICAO", "PERDIDO", "CANCELADO"],
   EM_ATENDIMENTO: ["QUALIFICADO", "NUTRICAO", "PERDIDO", "CANCELADO"],
@@ -33,5 +43,15 @@ export function canTransition(from: PipelineStage, to: PipelineStage): boolean {
 export function assertTransition(from: PipelineStage, to: PipelineStage): void {
   if (!canTransition(from, to)) {
     throw new Error(`Transição inválida: ${from} → ${to}`);
+  }
+}
+
+export function canManuallyTransition(from: PipelineStage, to: PipelineStage): boolean {
+  return humanManagedStageSchema.safeParse(to).success && canTransition(from, to);
+}
+
+export function assertManualTransition(from: PipelineStage, to: PipelineStage): void {
+  if (!canManuallyTransition(from, to)) {
+    throw new Error(`Transição manual inválida: ${from} → ${to}`);
   }
 }

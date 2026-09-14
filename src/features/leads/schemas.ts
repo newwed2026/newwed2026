@@ -29,7 +29,19 @@ export const publicLeadSchema = z.object({
 
 export const transitionSchema = z.object({
   stage: pipelineStageSchema,
-  reason: z.string().trim().min(1).max(1000),
+  reason: z.string().trim().max(1000).optional(),
+  nextAction: z.string().trim().max(200).optional(),
+  nextActionAt: z.string().datetime({ offset: true }).optional(),
+}).strict().superRefine((input,context) => {
+  if ((input.stage === "PERDIDO" || input.stage === "CANCELADO") && !input.reason) {
+    context.addIssue({ code:"custom",path:["reason"],message:"Informe o motivo desta etapa." });
+  }
+  if (input.stage === "NUTRICAO" && !input.nextAction) {
+    context.addIssue({ code:"custom",path:["nextAction"],message:"Informe a próxima ação." });
+  }
+  if (input.stage === "NUTRICAO" && !input.nextActionAt) {
+    context.addIssue({ code:"custom",path:["nextActionAt"],message:"Informe quando a próxima ação deve acontecer." });
+  }
 });
 
 export const leadPatchSchema = z.object({

@@ -43,3 +43,15 @@ Testes automatizados mockam apenas Meta, OpenAI, Asaas e e-mail. Nenhuma mensage
 ## D-011 — Testes Workers atuais
 
 Usar `@cloudflare/vitest-plugin`, integração oficial vigente para Vitest 5 e runtime Workers, em vez do pacote legado `@cloudflare/vitest-pool-workers`.
+
+## D-012 — Estado do checkout em três eixos
+
+`checkouts.status` representa a máquina técnica; `financial_status` representa a situação financeira e `send_status` representa o envio no WhatsApp. Os eixos não são inferidos um do outro, e timestamps registram cada marco.
+
+## D-013 — Transições manuais e concorrência
+
+`CHECKOUT_ENVIADO`, `AGUARDANDO_PAGAMENTO` e `PAGO` são etapas exclusivas das integrações. A API humana usa atualização otimista por etapa anterior; histórico, auditoria e tarefa só são inseridos quando a atualização modifica exatamente um lead.
+
+## D-014 — Compatibilidade temporária da conversa
+
+`conversations.mode` (`AGENT` ou `HUMAN`) é o estado autoritativo novo. `human_active` permanece durante a transição para não quebrar o worker anterior e será removido após todos os consumidores usarem `mode` na Onda 3.
