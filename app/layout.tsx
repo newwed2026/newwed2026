@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./institutional-home.css";
 
 export const metadata: Metadata = {
   title: "Grupo New Wed · Destination Wedding no Nordeste",

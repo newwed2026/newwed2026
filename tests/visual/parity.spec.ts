@@ -40,7 +40,6 @@ function blockMeanAbsoluteError(expected: PNG, received: PNG, blockSize = 4) {
   return totalError / blockCount;
 }
 const cases = [
-  ["institucional-home","http://127.0.0.1:5174/","/"],
   ["institucional-sobre","http://127.0.0.1:5174/sobre","/sobre"],
   ["institucional-feira","http://127.0.0.1:5174/feira","/feira"],
   ["institucional-destinos","http://127.0.0.1:5174/destinos","/destinos"],
@@ -74,6 +73,27 @@ async function settle(page: import("@playwright/test").Page) {
 }
 
 for (const [viewportName,width,height] of viewports) {
+  test(`${viewportName} · institucional-home`,async ({ page }) => {
+    await page.setViewportSize({ width,height });
+    await page.goto("http://localhost:4173/",{ waitUntil:"load" });
+    await settle(page);
+    await expect(page.getByRole("heading",{ name:/conectamos pessoas, destinos e experiências/i })).toBeVisible();
+    await expect(page.locator(".nw-project-card")).toHaveCount(4);
+    await expect(page.getByRole("heading",{ name:"Nosso ecossistema" })).toBeVisible();
+    const layout = await page.evaluate(() => ({
+      documentWidth:document.documentElement.scrollWidth,
+      viewportWidth:window.innerWidth,
+      pageBackground:getComputedStyle(document.querySelector(".nw-home")!).backgroundColor,
+      cardWidth:document.querySelector(".nw-project-card")!.getBoundingClientRect().width,
+    }));
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.pageBackground).toBe("rgb(255, 255, 255)");
+    expect(layout.cardWidth).toBeGreaterThan(100);
+    if (viewportName === "mobile") {
+      await page.locator(".nw-mobile-menu summary").click();
+      await expect(page.getByRole("navigation",{ name:"Navegação principal mobile" }).getByRole("link",{ name:"Contato" })).toBeVisible();
+    }
+  });
   for (const [name,source,target] of cases) {
     test(`${viewportName} · ${name}`,async ({ page }) => {
       await page.setViewportSize({ width,height });
