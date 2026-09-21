@@ -1,11 +1,11 @@
 # Status de execução
 
-Atualizado em: 2026-09-14
+Atualizado em: 2026-09-21
 
 ## Estado geral
 
-- Onda atual: ondas 0–5 concluídas e integradas.
-- Branch operacional: `main`.
+- Onda atual: onda 6, redesign da página inicial institucional, validada localmente.
+- Branch operacional: `codex/wave-6-institutional-white`; ondas 0–5 integradas em `main`.
 - Entrega funcional: `main` em `0c79d94`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Ambientes externos: não configurados/autorizados nesta execução.
@@ -102,9 +102,19 @@ Atualizado em: 2026-09-14
 
 ## Próximas ações
 
-1. Provisionar recursos e credenciais de staging e substituir os IDs marcadores.
-2. Aprovar o preflight e aplicar migrations `0000`–`0005` em staging.
-3. Com autorização específica, publicar staging, executar sandbox real e pilotar uma edição.
+1. Revisar a nova página inicial institucional localmente e integrar a onda 6 quando aprovada.
+2. Provisionar recursos e credenciais de staging e substituir os IDs marcadores.
+3. Aprovar o preflight e aplicar migrations `0000`–`0005` em staging.
+4. Com autorização específica, publicar staging, executar sandbox real e pilotar uma edição.
+
+## Onda 6 validada localmente
+
+- A página inicial institucional segue a referência recebida: hero editorial, quatro projetos, números, apresentação de Cindy e chamada final.
+- Fundo branco e tons neutros substituem as cores institucionais nessa página; as demais rotas permanecem com o visual existente.
+- Uma foto editorial gerada foi adicionada ao projeto para o hero; os cards e a seção sobre usam fotos locais.
+- Gate local aprovado: tipos Cloudflare, lint, typecheck, 64 unitários, build, 33 verificações visuais e auditoria sem vulnerabilidades.
+- Não houve alteração de schema, envio externo ou deploy.
+- Commit de implementação na branch: `127f1f3`.
 
 ## Riscos e bloqueios atuais
 

@@ -95,3 +95,7 @@ O Worker de eventos aceita somente o remetente `marketing@newwed.com.br` e, até
 ## D-024 — Lançamento exige gate humano
 
 O código pode preparar e validar estaticamente staging/produção, mas não cria recursos, publica Workers nem gera tráfego de Meta, Asaas ou e-mail. Esses passos exigem IDs/credenciais externos e autorização específica registrada para a janela de validação ou piloto.
+
+## D-025 — Página inicial institucional da onda 6
+
+A página inicial institucional replica a composição da referência fornecida pelo usuário, mas usa branco e tons neutros em vez das cores oficiais. A referência passa a definir o conteúdo dos quatro indicadores dessa página. O hero usa uma foto editorial gerada sem texto ou logotipo; os demais retratos e fotos continuam sendo os arquivos do projeto. A mudança visual fica limitada à página inicial, pois não há referência de layout para as outras rotas.
