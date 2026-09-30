@@ -119,7 +119,7 @@ Atualizado em: 2026-09-30
 - D1 production criado: `2263d378-59c9-4e5a-8d9b-a6e0140767dd`.
 - Queue production criada: `8e18d7f59d554826bb425c633c6441fa`.
 - R2 production removido por escolha explícita do usuário; assets continuam no build.
-- Commit publicado: `e6a6614`; Worker version `07a6ff4d-5a20-4a15-a8ae-40c1572b665c`.
+- Publicação inicial: `e6a6614`; configuração de domínio publicada em `2d768bd`, Worker version `0cfbd22d-62b6-4f47-ad63-12decbb102d5`.
 - Workers Build `f96de1e2-3067-4a1d-bb3c-aeee80de073d` aprovado às 16:43 de 2026-09-30 (America/Recife).
 - CI GitHub `36767408991` aprovado; site em `https://new-wed-platform-production.royal-leaf-8110.workers.dev`.
 - Migrations 0000–0005 confirmadas no console D1; oito páginas públicas responderam HTTP 200 no Chrome.
@@ -129,6 +129,7 @@ Atualizado em: 2026-09-30
 - `fast-uri` atualizado de 3.1.7 para 3.1.8; auditoria de produção sem vulnerabilidades.
 
 - Domínios `newwed.com.br` e `www.newwed.com.br` conectados por rotas Workers, preservando DNS e e-mail existentes.
+- Build de domínio `5e18cd05-6dc8-47cc-94ad-c59a70b98313` aprovado às 17:05; apex revalidado HTTP 200/HTTPS após o deploy. CI GitHub `36770039580` aprovado.
 
 ## Riscos e bloqueios atuais
 
