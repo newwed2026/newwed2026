@@ -1,14 +1,14 @@
 # Status de execução
 
-Atualizado em: 2026-09-21
+Atualizado em: 2026-09-30
 
 ## Estado geral
 
-- Onda atual: onda 6, redesign da página inicial institucional, validada localmente.
-- Branch operacional: `codex/wave-6-institutional-white`; ondas 0–5 integradas em `main`.
-- Entrega funcional: `main` em `0c79d94`.
+- Onda atual: onda 7, publicação inicial do site na Cloudflare, preparada e validada localmente.
+- Branch operacional: `codex/wave-7-cloudflare-deploy`; ondas 0–6 no repositório `newwed2026/newwed2026`.
+- Base da publicação: `origin/main` em `c382d58`.
 - Dados legados: inexistentes; o projeto começa vazio.
-- Ambientes externos: não configurados/autorizados nesta execução.
+- Usuário autorizou deploy do site em 2026-09-30, conexão GitHub restrita ao repositório e publicação sem R2.
 
 ## Concluído antes das ondas
 
@@ -102,10 +102,9 @@ Atualizado em: 2026-09-21
 
 ## Próximas ações
 
-1. Revisar a nova página inicial institucional localmente e integrar a onda 6 quando aprovada.
-2. Provisionar recursos e credenciais de staging e substituir os IDs marcadores.
-3. Aprovar o preflight e aplicar migrations `0000`–`0005` em staging.
-4. Com autorização específica, publicar staging, executar sandbox real e pilotar uma edição.
+1. Publicar o site pelo Workers Builds após a confirmação de criação do token de build exigida pelo navegador.
+2. Confirmar migrations, deploy terminal e smoke HTTP/visual no endereço Cloudflare.
+3. Provisionar Access, Turnstile e integrações externas para liberar a operação comercial, com autorização específica.
 
 ## Onda 6 validada localmente
 
@@ -116,11 +115,24 @@ Atualizado em: 2026-09-21
 - Não houve alteração de schema, envio externo ou deploy.
 - Commit de implementação na branch: `127f1f3`.
 
+## Onda 7 preparada
+
+- Conta Cloudflare New Wed: `41245f76790f4922487ec395c9e3bcec`.
+- D1 production criado: `2263d378-59c9-4e5a-8d9b-a6e0140767dd`.
+- Queue production criada: `8e18d7f59d554826bb425c633c6441fa`.
+- R2 production removido por escolha explícita do usuário; assets continuam no build.
+- Scripts selecionam production no build e publicam o artefato sem recompilar em development.
+- Tipos, lint, typecheck, 64 unitários, 18 invariantes D1, 6 cenários Workers, build production, dry-run e 33 visuais aprovados.
+- Os dois casos visuais com ERR_EMPTY_RESPONSE passaram na repetição direcionada.
+- `fast-uri` atualizado de 3.1.7 para 3.1.8; auditoria de produção sem vulnerabilidades.
+
 ## Riscos e bloqueios atuais
 
-- Os IDs D1 em Wrangler são marcadores; o preflight bloqueia migrations/publicação remotas.
-- Meta, Asaas, OpenAI e e-mail dependem de contas, tokens e aprovações externas.
-- Nenhum envio, cobrança ou deploy real está autorizado.
+- Access, Turnstile, Meta, Asaas, OpenAI e e-mail ainda dependem de configuração externa.
+- O painel permanece autenticado; inscrições falham de forma segura sem Turnstile.
+- O consumidor de eventos não será publicado nesta etapa de hospedagem do site.
+- O preflight comercial completo permanece bloqueado sem R2 e os demais requisitos de lançamento.
+- Nenhum envio ou cobrança externa foi autorizado.
 
 ## Regra de atualização
 

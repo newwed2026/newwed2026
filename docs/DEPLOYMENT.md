@@ -1,5 +1,20 @@
 # Deploy e configuração Cloudflare
 
+## Publicação inicial do site — 2026-09-30
+
+O usuário autorizou publicar o repositório `newwed2026/newwed2026` na conta New Wed e escolheu manter R2 desabilitado nesta primeira publicação.
+
+- Conta: `41245f76790f4922487ec395c9e3bcec`.
+- Worker: `new-wed-platform-production`.
+- D1: `new-wed-platform-production`, ID `2263d378-59c9-4e5a-8d9b-a6e0140767dd`.
+- Queue: `new-wed-events-production`, ID `8e18d7f59d554826bb425c633c6441fa`.
+- Build no Workers Builds: `npm run build:production`.
+- Deploy no Workers Builds: `npm run db:migrate:production && npm run deploy:production`.
+
+O ambiente é selecionado no build com `CLOUDFLARE_ENV=production`; o deploy usa a configuração gerada e não recompila no ambiente de desenvolvimento. A migração remota ocorre antes da publicação.
+
+O site usa seus assets empacotados e não depende de uploads R2. O consumidor de eventos, Access, Turnstile e as integrações externas ainda exigem provisionamento próprio. O painel mantém `ALLOW_LOCAL_ACCESS=false`, e o formulário falha de forma segura enquanto Turnstile não estiver configurado. O preflight completo de lançamento comercial continua bloqueado sem R2 e os demais requisitos; esta publicação não representa aceite do piloto comercial.
+
 ## Recursos
 
 Crie recursos distintos para `staging` e `production`:

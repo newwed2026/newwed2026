@@ -110,6 +110,7 @@ describe("fluxo completo no runtime Workers",()=>{
     expect(send).toHaveBeenCalledTimes(2);
     expect((await env.DB.prepare("SELECT delivery_status,attempts FROM notification_recipients WHERE notification_id=? AND channel='EMAIL'").bind(notification!.id).first<{delivery_status:string;attempts:number}>())).toMatchObject({delivery_status:"SENT",attempts:2});
     expect((await env.DB.prepare("SELECT utm_source FROM lead_attribution WHERE lead_id=? AND touch_type='LAST'").bind(leadId).first<{utm_source:string}>())?.utm_source).toBe("instagram");
+    if (!env.MEDIA) throw new Error("The local Workers test requires the MEDIA binding.");
     await env.MEDIA.put("evidence/flow.txt","ok");
     expect(await (await env.MEDIA.get("evidence/flow.txt"))?.text()).toBe("ok");
   });

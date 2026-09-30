@@ -53,8 +53,11 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "build:production": "CLOUDFLARE_ENV=production vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "deploy": "vinext-cloudflare deploy --config dist/server/wrangler.json",
+    "deploy:production": "vinext-cloudflare deploy --skip-build --config dist/server/wrangler.json",
+    "db:migrate:production": "wrangler d1 migrations apply new-wed-platform-production --remote --config dist/server/wrangler.json",
     "dev:events": "wrangler dev --config wrangler.events.jsonc",
     "deploy:events": "wrangler deploy --config wrangler.events.jsonc",
     "typecheck": "tsc --noEmit",

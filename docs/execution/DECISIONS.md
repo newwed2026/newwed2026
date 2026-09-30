@@ -99,3 +99,7 @@ O código pode preparar e validar estaticamente staging/produção, mas não cri
 ## D-025 — Página inicial institucional da onda 6
 
 A página inicial institucional replica a composição da referência fornecida pelo usuário, mas usa branco e tons neutros em vez das cores oficiais. A referência passa a definir o conteúdo dos quatro indicadores dessa página. O hero usa uma foto editorial gerada sem texto ou logotipo; os demais retratos e fotos continuam sendo os arquivos do projeto. A mudança visual fica limitada à página inicial, pois não há referência de layout para as outras rotas.
+
+## D-026 — Publicação inicial sem R2
+
+Em 2026-09-30, o usuário autorizou a publicação do site na conta Cloudflare New Wed e escolheu não ativar a assinatura R2. O ambiente production mantém D1, Queue e assets do build, sem binding R2; desenvolvimento e staging preservam seus contratos. O consumidor de eventos e as integrações comerciais permanecem pendentes de configuração. O deploy utiliza o build já selecionado para production, sem recompilar no ambiente padrão.
