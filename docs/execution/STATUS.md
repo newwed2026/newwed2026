@@ -4,8 +4,8 @@ Atualizado em: 2026-09-30
 
 ## Estado geral
 
-- Onda atual: onda 8, correção da navegação para retirar o institucional escuro, validada localmente, em publicação.
-- Branch operacional: `codex/wave-8-current-site-navigation`; base operacional `25014aa`, main publicado `2d768bd`.
+- Onda atual: onda 8 publicada, navegação corrigida e validada no domínio com CI aprovado.
+- Branch operacional: `codex/wave-8-current-site-navigation`; main publicado `c8dc547`.
 - Base da publicação: `origin/main` em `c382d58`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Usuário autorizou deploy, conexão GitHub restrita ao repositório, publicação sem R2 e conexão do domínio existente em 2026-09-30.
@@ -131,11 +131,13 @@ Atualizado em: 2026-09-30
 - Domínios `newwed.com.br` e `www.newwed.com.br` conectados por rotas Workers, preservando DNS e e-mail existentes.
 - Build de domínio `5e18cd05-6dc8-47cc-94ad-c59a70b98313` aprovado às 17:05; apex revalidado HTTP 200/HTTPS após o deploy. CI GitHub `36770039580` aprovado.
 
-## Onda 8 validada localmente
+## Onda 8 publicada
 
 - Menus e links institucionais navegam por seções atuais; URLs antigas redirecionam para a home branca.
 - Navbar e rodapé da FAMTOUR apontam para essas seções; card Destinos conecta `/famtour`.
 - Gate: tipos, lint, typecheck, 64 unitários, build production, 24 visuais/navegação e auditoria aprovados.
+- Commit `c8dc547`; Workers Build `50059df3-a0ef-4eb2-8218-a1af3a392f14` aprovado às 17:55 de 2026-09-30 (America/Recife), version `62da01b3-f45f-4988-ab6f-37703ad240a0`.
+- Os 12 links das navbars e o redirect de `/sobre` foram confirmados no Chrome público; CI GitHub `36775891576` aprovado.
 
 ## Riscos e bloqueios atuais
 
