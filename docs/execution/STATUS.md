@@ -4,8 +4,8 @@ Atualizado em: 2026-09-30
 
 ## Estado geral
 
-- Onda atual: onda 9, navegação interna da landing FAMTOUR validada localmente, em publicação.
-- Branch operacional: `codex/wave-9-famtour-section-navigation`; main publicado `c8dc547`.
+- Onda atual: onda 9 publicada, navegação interna da FAMTOUR validada no domínio e CI aprovado.
+- Branch operacional: `codex/wave-9-famtour-section-navigation`; main publicado `5a0cc17`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Usuário autorizou deploy, conexão GitHub restrita ao repositório, publicação sem R2 e conexão do domínio existente em 2026-09-30.
 
@@ -134,11 +134,12 @@ Atualizado em: 2026-09-30
 - Commit `c8dc547`; Workers Build `50059df3-a0ef-4eb2-8218-a1af3a392f14` aprovado às 17:55 de 2026-09-30 (America/Recife), version `62da01b3-f45f-4988-ab6f-37703ad240a0`.
 - Os 12 links das navbars e o redirect de `/sobre` foram confirmados no Chrome público; CI GitHub `36775891576` aprovado.
 
-## Onda 9 validada localmente
+## Onda 9 publicada
 
 - Navbar/rodapé navegam pelas seções da FAMTOUR; query de edição preservada e menu mobile fecha após o clique.
 - Galerias e inscrição retornam à landing; alvos respeitam a navbar fixa. Sem migrations novas.
 - Gate: tipos Cloudflare, lint, typecheck, 64 unitários, build production, 27 visuais/navegação e auditoria aprovados.
+- Commit `5a0cc17`, Workers Build `2828d7ae-ca45-4663-9c14-d6d82deeb3a7` aprovado às 18:10; 12 links públicos confirmados e CI GitHub `36777558836` aprovado.
 
 ## Riscos e bloqueios atuais
 
