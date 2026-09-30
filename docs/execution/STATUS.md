@@ -4,7 +4,7 @@ Atualizado em: 2026-09-30
 
 ## Estado geral
 
-- Onda atual: onda 7, publicação inicial do site na Cloudflare, preparada e validada localmente.
+- Onda atual: onda 7, publicação inicial do site na Cloudflare, concluída e validada remotamente.
 - Branch operacional: `codex/wave-7-cloudflare-deploy`; ondas 0–6 no repositório `newwed2026/newwed2026`.
 - Base da publicação: `origin/main` em `c382d58`.
 - Dados legados: inexistentes; o projeto começa vazio.
@@ -102,9 +102,8 @@ Atualizado em: 2026-09-30
 
 ## Próximas ações
 
-1. Publicar o site pelo Workers Builds após a confirmação de criação do token de build exigida pelo navegador.
-2. Confirmar migrations, deploy terminal e smoke HTTP/visual no endereço Cloudflare.
-3. Provisionar Access, Turnstile e integrações externas para liberar a operação comercial, com autorização específica.
+1. Definir e conectar o domínio próprio quando solicitado.
+2. Provisionar Access, Turnstile e integrações externas para liberar a operação comercial, com autorização específica.
 
 ## Onda 6 validada localmente
 
@@ -115,12 +114,16 @@ Atualizado em: 2026-09-30
 - Não houve alteração de schema, envio externo ou deploy.
 - Commit de implementação na branch: `127f1f3`.
 
-## Onda 7 preparada
+## Onda 7 publicada
 
 - Conta Cloudflare New Wed: `41245f76790f4922487ec395c9e3bcec`.
 - D1 production criado: `2263d378-59c9-4e5a-8d9b-a6e0140767dd`.
 - Queue production criada: `8e18d7f59d554826bb425c633c6441fa`.
 - R2 production removido por escolha explícita do usuário; assets continuam no build.
+- Commit publicado: `e6a6614`; Worker version `07a6ff4d-5a20-4a15-a8ae-40c1572b665c`.
+- Workers Build `f96de1e2-3067-4a1d-bb3c-aeee80de073d` aprovado às 16:43 de 2026-09-30 (America/Recife).
+- CI GitHub `36767408991` aprovado; site em `https://new-wed-platform-production.royal-leaf-8110.workers.dev`.
+- Migrations 0000–0005 confirmadas no console D1; oito páginas públicas responderam HTTP 200 no Chrome.
 - Scripts selecionam production no build e publicam o artefato sem recompilar em development.
 - Tipos, lint, typecheck, 64 unitários, 18 invariantes D1, 6 cenários Workers, build production, dry-run e 33 visuais aprovados.
 - Os dois casos visuais com ERR_EMPTY_RESPONSE passaram na repetição direcionada.
