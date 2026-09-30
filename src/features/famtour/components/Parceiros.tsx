@@ -124,6 +124,7 @@ function PartnerList({ decorative = false }: { decorative?: boolean }) {
 export function ParceirosLogos() {
   return (
     <section
+      id="parceiros"
       aria-label="Marcas e Parceiros"
       style={{
         width: "100%",

@@ -79,7 +79,7 @@ export function FamtourLanding() {
     <SiteShell>
       <Toaster position="top-center" richColors />
       <main
-        className="bg-white"
+        className="famtour-landing bg-white"
         style={{
           color: "#191010",
           scrollBehavior: "smooth",
@@ -94,7 +94,7 @@ export function FamtourLanding() {
             <ParceirosLogos />
 
             {/* O que é */}
-            <section className="mx-auto max-w-[720px] px-6 py-12 text-center md:py-16">
+            <section id="experiencia" className="mx-auto max-w-[720px] px-6 py-12 text-center md:py-16">
               <Divisor>O que é</Divisor>
               <h2
                 style={{

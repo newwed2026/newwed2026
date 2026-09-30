@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { FAMTOUR_NAVIGATION, famtourSectionHref } from "@/features/famtour/navigation";
 import {
   WHATSAPP_URL,
   EMAIL,
@@ -11,18 +12,13 @@ import {
   CITY,
 } from "@/features/famtour/contact";
 
-const vertentes = [
-  { to: "/#feira" as const, label: "Feira" },
-  { to: "/#destinos" as const, label: "Destinos" },
-  { to: "/#guia" as const, label: "Guia" },
-  { to: "/#workshop" as const, label: "Workshop" },
-];
-const institucional = [
-  { to: "/#sobre" as const, label: "Sobre o grupo" },
-  { to: "/#contato" as const, label: "Contato" },
-];
-
 export function Footer() {
+  const pathname = usePathname();
+  const href = (id: string) => famtourSectionHref(pathname, id);
+  const participation = [
+    { id: "inicio", label: "Início" },
+    { id: "form", label: "Falar com a equipe" },
+  ];
   return (
     <footer className="bg-dark border-t border-cream/10">
       <div className="px-6 md:px-12 py-14 md:py-16 grid grid-cols-2 md:grid-cols-4 gap-10">
@@ -41,14 +37,14 @@ export function Footer() {
 
         <div>
           <div className="text-[8px] tracking-[0.3em] uppercase text-cream/40 mb-4 font-light">
-            Vertentes
+            FAMTOUR
           </div>
           <ul className="flex flex-col gap-2.5 text-[11px] text-cream/55 font-light">
-            {vertentes.map((l) => (
-              <li key={l.to}>
-                <Link href={l.to} className="hover:text-cream transition-colors">
+            {FAMTOUR_NAVIGATION.map((l) => (
+              <li key={l.id}>
+                <a href={href(l.id)} className="hover:text-cream transition-colors">
                   {l.label}
-                </Link>
+                </a>
               </li>
             ))}
           </ul>
@@ -56,14 +52,14 @@ export function Footer() {
 
         <div>
           <div className="text-[8px] tracking-[0.3em] uppercase text-cream/40 mb-4 font-light">
-            Institucional
+            Participe
           </div>
           <ul className="flex flex-col gap-2.5 text-[11px] text-cream/55 font-light">
-            {institucional.map((l) => (
-              <li key={l.to}>
-                <Link href={l.to} className="hover:text-cream transition-colors">
+            {participation.map((l) => (
+              <li key={l.id}>
+                <a href={href(l.id)} className="hover:text-cream transition-colors">
                   {l.label}
-                </Link>
+                </a>
               </li>
             ))}
           </ul>
@@ -137,12 +133,12 @@ export function Footer() {
       <div className="border-t border-cream/10 px-6 md:px-12 py-5 flex flex-col md:flex-row items-center justify-between gap-3 text-[8px] tracking-[0.2em] uppercase text-cream/30 font-light">
         <div>© 2027 · Grupo New Wed · Todos os direitos reservados</div>
         <div className="flex gap-5">
-          <Link href="/#sobre" className="hover:text-cream/60 transition-colors">
-            Sobre
-          </Link>
-          <Link href="/#contato" className="hover:text-cream/60 transition-colors">
+          <a href={href("experiencia")} className="hover:text-cream/60 transition-colors">
+            Sobre o FAMTOUR
+          </a>
+          <a href={href("form")} className="hover:text-cream/60 transition-colors">
             Contato
-          </Link>
+          </a>
         </div>
       </div>
     </footer>

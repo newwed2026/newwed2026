@@ -118,16 +118,40 @@ for (const [viewportName,width,height] of viewports) {
     }
   });
 
-  test(`${viewportName} · navbar FAMTOUR para o institucional atual`, async ({ page }) => {
+  test(`${viewportName} · navegação pelas seções da FAMTOUR`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ reducedMotion: "reduce" });
-    for (const section of institutionalSections) {
-      await page.goto("http://localhost:4173/famtour");
+    await page.goto("http://localhost:4173/famtour?edicao=famtour-rn-abril-2027");
+    await page.waitForLoadState("networkidle");
+    for (const section of ["experiencia", "edicoes-anteriores", "famtours", "parceiros", "form", "inicio"]) {
+      if (width < 1024) await page.getByRole("button", { name: "Abrir menu" }).click();
+      await page.getByRole("navigation", { name: "Navegação FAMTOUR" }).locator(`a[href="#${section}"]:visible`).click();
+      await expect(page).toHaveURL(`http://localhost:4173/famtour?edicao=famtour-rn-abril-2027#${section}`);
+      await expect(page.locator(`.famtour-landing #${section}`)).toBeInViewport();
+      if (width < 1024) await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveAttribute("aria-expanded", "false");
+      await expect.poll(() => page.locator(`#${section}`).evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(64);
+    }
+    for (const section of ["experiencia", "edicoes-anteriores", "famtours", "parceiros", "inicio", "form"]) {
+      await page.getByRole("contentinfo").locator(`a[href="#${section}"]`).first().click();
+      await expect(page).toHaveURL(`http://localhost:4173/famtour?edicao=famtour-rn-abril-2027#${section}`);
+      await expect(page.locator(`.famtour-landing #${section}`)).toBeInViewport();
+    }
+  });
+
+  test(`${viewportName} · páginas FAMTOUR retornam à landing`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (const route of ["edicoes/fernando-de-noronha-2026", "inscricao/famtour-rn-abril-2027"]) {
+      await page.goto(`http://localhost:4173/famtour/${route}`);
       await page.waitForLoadState("networkidle");
-      if (viewportName === "mobile") await page.getByRole("button", { name: "Abrir menu" }).click();
-      await page.getByRole("navigation").locator(`a[href="/#${section}"]:visible`).click();
-      await expect(page).toHaveURL(`http://localhost:4173/#${section}`);
-      await expect(page.locator(`.nw-home #${section}`)).toBeInViewport();
+      if (route.startsWith("edicoes/")) {
+        if (width < 1024) await page.getByRole("button", { name: "Abrir menu" }).click();
+        await page.getByRole("navigation", { name: "Navegação FAMTOUR" }).getByRole("link", { name: "Edições abertas" }).click();
+      } else {
+        await page.getByRole("banner").getByRole("link", { name: "Voltar para edições abertas" }).click();
+      }
+      await expect(page).toHaveURL("http://localhost:4173/famtour#famtours");
+      await expect(page.locator(".famtour-landing #famtours")).toBeInViewport();
     }
   });
 

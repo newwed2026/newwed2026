@@ -42,6 +42,7 @@ export function HeroSplit({ onCta }: { onCta: () => void }) {
 
   return (
     <section
+      id="inicio"
       className="relative grid min-h-[calc(100svh-4rem)] grid-cols-1 overflow-hidden md:min-h-[90vh] md:grid-cols-[36%_64%]"
     >
       {/* ── Painel esquerdo — branco ── */}

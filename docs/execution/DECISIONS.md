@@ -110,4 +110,8 @@ Em 2026-09-30, o usuário solicitou conectar o domínio existente `newwed.com.br
 
 ## D-028 — Institucional atual com navegação por seções
 
-O usuário retirou o institucional escuro em 2026-09-30. Os menus do institucional branco passam a navegar por âncoras sobre, feira, destinos, guia, workshop e contato. A navbar e o rodapé da FAMTOUR mantêm seus rótulos e abrem essas seções do institucional atual. As seis URLs antigas redirecionam para as respectivas âncoras, sem renderizar o conteúdo retirado. Destinos conecta a landing FAMTOUR; as demais chamadas de projetos conduzem ao contato atual. A composição da home e a operação da landing/admin são preservadas.
+O usuário retirou o institucional escuro em 2026-09-30. Os menus do institucional branco passam a navegar por âncoras sobre, feira, destinos, guia, workshop e contato. As seis URLs antigas redirecionam para as respectivas âncoras, sem renderizar o conteúdo retirado. Destinos conecta a landing FAMTOUR; as demais chamadas de projetos conduzem ao contato atual. A composição da home e a operação da landing/admin são preservadas. A navegação da FAMTOUR segue D-029.
+
+## D-029 — FAMTOUR navega dentro da própria landing
+
+O usuário esclareceu que a navbar da FAMTOUR deve permanecer na landing. Navbar e rodapé usam seções Sobre o FAMTOUR, Edições anteriores, Edições abertas e Parceiros; Falar com a equipe conduz ao formulário. Na landing, âncoras locais preservam a edição selecionada na query string. Em páginas de galeria e inscrição, os mesmos links retornam a `/famtour#<seção>`. A marca retorna ao início da landing. Os alvos possuem margem para a navbar fixa e o menu mobile fecha após o clique.

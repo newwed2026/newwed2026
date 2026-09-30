@@ -4,9 +4,8 @@ Atualizado em: 2026-09-30
 
 ## Estado geral
 
-- Onda atual: onda 8 publicada, navegação corrigida e validada no domínio com CI aprovado.
-- Branch operacional: `codex/wave-8-current-site-navigation`; main publicado `c8dc547`.
-- Base da publicação: `origin/main` em `c382d58`.
+- Onda atual: onda 9, navegação interna da landing FAMTOUR validada localmente, em publicação.
+- Branch operacional: `codex/wave-9-famtour-section-navigation`; main publicado `c8dc547`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Usuário autorizou deploy, conexão GitHub restrita ao repositório, publicação sem R2 e conexão do domínio existente em 2026-09-30.
 
@@ -100,10 +99,6 @@ Atualizado em: 2026-09-30
 - PR `#6` integrada em `main` no commit `0c79d94`.
 - CI remoto aprovado nas execuções `34864371156` (PR) e `34864801713` (`main`).
 
-## Próximas ações
-
-1. Provisionar Access, Turnstile e integrações externas para liberar a operação comercial, com autorização específica.
-
 ## Onda 6 validada localmente
 
 - A página inicial institucional segue a referência recebida: hero editorial, quatro projetos, números, apresentação de Cindy e chamada final.
@@ -134,10 +129,16 @@ Atualizado em: 2026-09-30
 ## Onda 8 publicada
 
 - Menus e links institucionais navegam por seções atuais; URLs antigas redirecionam para a home branca.
-- Navbar e rodapé da FAMTOUR apontam para essas seções; card Destinos conecta `/famtour`.
+- Card Destinos conecta `/famtour`; a navegação da landing foi revisada na onda 9 após esclarecimento do usuário.
 - Gate: tipos, lint, typecheck, 64 unitários, build production, 24 visuais/navegação e auditoria aprovados.
 - Commit `c8dc547`; Workers Build `50059df3-a0ef-4eb2-8218-a1af3a392f14` aprovado às 17:55 de 2026-09-30 (America/Recife), version `62da01b3-f45f-4988-ab6f-37703ad240a0`.
 - Os 12 links das navbars e o redirect de `/sobre` foram confirmados no Chrome público; CI GitHub `36775891576` aprovado.
+
+## Onda 9 validada localmente
+
+- Navbar/rodapé navegam pelas seções da FAMTOUR; query de edição preservada e menu mobile fecha após o clique.
+- Galerias e inscrição retornam à landing; alvos respeitam a navbar fixa. Sem migrations novas.
+- Gate: tipos Cloudflare, lint, typecheck, 64 unitários, build production, 27 visuais/navegação e auditoria aprovados.
 
 ## Riscos e bloqueios atuais
 
