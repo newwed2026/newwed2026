@@ -103,3 +103,7 @@ A página inicial institucional replica a composição da referência fornecida 
 ## D-026 — Publicação inicial sem R2
 
 Em 2026-09-30, o usuário autorizou a publicação do site na conta Cloudflare New Wed e escolheu não ativar a assinatura R2. O ambiente production mantém D1, Queue e assets do build, sem binding R2; desenvolvimento e staging preservam seus contratos. O consumidor de eventos e as integrações comerciais permanecem pendentes de configuração. O deploy utiliza o build já selecionado para production, sem recompilar no ambiente padrão.
+
+## D-027 — Domínio institucional preservando DNS legado
+
+Em 2026-09-30, o usuário solicitou conectar o domínio existente `newwed.com.br`. O apex possui A proxied para `70.38.123.170`, www é CNAME proxied para o apex e mail é CNAME DNS-only para o apex. Usar rotas Workers específicas `newwed.com.br/*` e `www.newwed.com.br/*` preserva esses destinos DNS, os registros de e-mail e os demais serviços do servidor. O Worker atende integralmente os caminhos web com seus assets; falhas permanecem fechadas, sem fallback para o site antigo. As duas rotas ficam no ambiente production do Wrangler para os deploys automáticos.

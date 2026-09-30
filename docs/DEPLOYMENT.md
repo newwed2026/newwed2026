@@ -56,3 +56,7 @@ Defina `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `TURNSTILE_SITE_KEY`, `OPENAI_MODEL` 
 8. Somente após o aceite do piloto, repita o preflight e a publicação em produção.
 
 O repositório não cria recursos nem envia mensagens/pagamentos automaticamente. Essas ações dependem das credenciais e da janela de lançamento aprovadas.
+
+### Domínio institucional
+
+`https://newwed.com.br` e `https://www.newwed.com.br` usam rotas Workers específicas no ambiente production. Os registros A/CNAME existentes e MX/TXT de e-mail permanecem intactos, incluindo o alias mail que depende do apex. Não substituir esses registros por Custom Domains sem separar essa dependência legada. As rotas estão versionadas em `wrangler.jsonc` para os builds automáticos.

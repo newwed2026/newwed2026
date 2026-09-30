@@ -8,7 +8,7 @@ Atualizado em: 2026-09-30
 - Branch operacional: `codex/wave-7-cloudflare-deploy`; ondas 0–6 no repositório `newwed2026/newwed2026`.
 - Base da publicação: `origin/main` em `c382d58`.
 - Dados legados: inexistentes; o projeto começa vazio.
-- Usuário autorizou deploy do site em 2026-09-30, conexão GitHub restrita ao repositório e publicação sem R2.
+- Usuário autorizou deploy, conexão GitHub restrita ao repositório, publicação sem R2 e conexão do domínio existente em 2026-09-30.
 
 ## Concluído antes das ondas
 
@@ -102,8 +102,7 @@ Atualizado em: 2026-09-30
 
 ## Próximas ações
 
-1. Definir e conectar o domínio próprio quando solicitado.
-2. Provisionar Access, Turnstile e integrações externas para liberar a operação comercial, com autorização específica.
+1. Provisionar Access, Turnstile e integrações externas para liberar a operação comercial, com autorização específica.
 
 ## Onda 6 validada localmente
 
@@ -128,6 +127,8 @@ Atualizado em: 2026-09-30
 - Tipos, lint, typecheck, 64 unitários, 18 invariantes D1, 6 cenários Workers, build production, dry-run e 33 visuais aprovados.
 - Os dois casos visuais com ERR_EMPTY_RESPONSE passaram na repetição direcionada.
 - `fast-uri` atualizado de 3.1.7 para 3.1.8; auditoria de produção sem vulnerabilidades.
+
+- Domínios `newwed.com.br` e `www.newwed.com.br` conectados por rotas Workers, preservando DNS e e-mail existentes.
 
 ## Riscos e bloqueios atuais
 
