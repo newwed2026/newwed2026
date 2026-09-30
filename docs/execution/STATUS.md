@@ -4,8 +4,8 @@ Atualizado em: 2026-09-30
 
 ## Estado geral
 
-- Onda atual: onda 7, publicação inicial do site na Cloudflare, concluída e validada remotamente.
-- Branch operacional: `codex/wave-7-cloudflare-deploy`; ondas 0–6 no repositório `newwed2026/newwed2026`.
+- Onda atual: onda 8, correção da navegação para retirar o institucional escuro, validada localmente, em publicação.
+- Branch operacional: `codex/wave-8-current-site-navigation`; base operacional `25014aa`, main publicado `2d768bd`.
 - Base da publicação: `origin/main` em `c382d58`.
 - Dados legados: inexistentes; o projeto começa vazio.
 - Usuário autorizou deploy, conexão GitHub restrita ao repositório, publicação sem R2 e conexão do domínio existente em 2026-09-30.
@@ -131,6 +131,12 @@ Atualizado em: 2026-09-30
 - Domínios `newwed.com.br` e `www.newwed.com.br` conectados por rotas Workers, preservando DNS e e-mail existentes.
 - Build de domínio `5e18cd05-6dc8-47cc-94ad-c59a70b98313` aprovado às 17:05; apex revalidado HTTP 200/HTTPS após o deploy. CI GitHub `36770039580` aprovado.
 
+## Onda 8 validada localmente
+
+- Menus e links institucionais navegam por seções atuais; URLs antigas redirecionam para a home branca.
+- Navbar e rodapé da FAMTOUR apontam para essas seções; card Destinos conecta `/famtour`.
+- Gate: tipos, lint, typecheck, 64 unitários, build production, 24 visuais/navegação e auditoria aprovados.
+
 ## Riscos e bloqueios atuais
 
 - Access, Turnstile, Meta, Asaas, OpenAI e e-mail ainda dependem de configuração externa.
@@ -138,7 +144,3 @@ Atualizado em: 2026-09-30
 - O consumidor de eventos não será publicado nesta etapa de hospedagem do site.
 - O preflight comercial completo permanece bloqueado sem R2 e os demais requisitos de lançamento.
 - Nenhum envio ou cobrança externa foi autorizado.
-
-## Regra de atualização
-
-Manter este arquivo conciso. Detalhes encerrados pertencem aos checkpoints e decisões permanentes a `DECISIONS.md`.

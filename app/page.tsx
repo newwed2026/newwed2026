@@ -6,46 +6,43 @@ import destinosImage from "@/assets/fantour-noronha.jpg";
 import guiaImage from "@/assets/guia.jpg";
 import workshopImage from "@/assets/workshop.jpg";
 import cindyImage from "@/assets/cindy.jpg";
-import { INSTAGRAM_URL } from "@/features/institutional/contact";
+import { INSTAGRAM_URL, WHATSAPP_URL } from "@/features/institutional/contact";
+import { institutionalNavigation } from "@/features/institutional/navigation";
+import { HomeMobileMenu } from "@/features/institutional/components/HomeMobileMenu";
 
 const projects = [
   {
-    href: "/feira",
+    id: "feira",
+    href: "#contato",
     name: "Feira Tendência",
     brand: ["NEW", "WED", "FEIRA"],
     description: "A maior feira de tendências e destinos para casamentos do Nordeste.",
     image: feiraImage.src,
   },
   {
-    href: "/destinos",
+    id: "destinos",
+    href: "/famtour",
     name: "Destinos",
     brand: ["NEW", "WED", "DESTINOS"],
     description: "Famtours imersivos que apresentam destinos e criam conexões reais de negócios.",
     image: destinosImage.src,
   },
   {
-    href: "/guia",
+    id: "guia",
+    href: "#contato",
     name: "Guia",
     brand: ["NEW", "WED", "GUIA"],
     description: "Publicação de referência com fornecedores, destinos e conteúdo exclusivo.",
     image: guiaImage.src,
   },
   {
-    href: "/workshop",
+    id: "workshop",
+    href: "#contato",
     name: "Workshop",
     brand: ["NEW", "WED", "WORKSHOP"],
     description: "Encontro estratégico que conecta destinos aos principais profissionais do país.",
     image: workshopImage.src,
   },
-] as const;
-
-const navigation = [
-  { href: "/sobre", label: "O grupo" },
-  { href: "/feira", label: "New Wed Feira" },
-  { href: "/destinos", label: "New Wed Destinos" },
-  { href: "/guia", label: "New Wed Guia" },
-  { href: "/workshop", label: "New Wed Workshop" },
-  { href: "/contato", label: "Contato" },
 ] as const;
 
 function HomeContent() {
@@ -59,18 +56,11 @@ function HomeContent() {
             <span>WED</span>
           </Link>
           <nav className="nw-nav" aria-label="Navegação principal">
-            {navigation.map((item) => (
-              <Link href={item.href} key={item.href}>{item.label}</Link>
+            {institutionalNavigation.map((item) => (
+              <a href={`#${item.id}`} key={item.id}>{item.label}</a>
             ))}
           </nav>
-          <details className="nw-mobile-menu">
-            <summary aria-label="Abrir menu"><span /><span /><span /></summary>
-            <nav aria-label="Navegação principal mobile">
-              {navigation.map((item) => (
-                <Link href={item.href} key={item.href}>{item.label}</Link>
-              ))}
-            </nav>
-          </details>
+          <HomeMobileMenu />
         </header>
 
         <div className="nw-hero-content">
@@ -91,7 +81,7 @@ function HomeContent() {
         </div>
         <div className="nw-project-grid">
           {projects.map((project) => (
-            <article className="nw-project-card" key={project.href}>
+            <article className="nw-project-card" id={project.id} key={project.id}>
               <img src={project.image} alt="" loading="lazy" />
               <div className="nw-project-shade" />
               <div className="nw-project-copy">
@@ -100,9 +90,9 @@ function HomeContent() {
                 </h3>
                 <div className="nw-project-bottom">
                   <p>{project.description}</p>
-                  <Link href={project.href} className="nw-button nw-button-outline" aria-label={`Saiba mais sobre New Wed ${project.name}`}>
-                    Saiba mais
-                  </Link>
+                  <a href={project.href} className="nw-button nw-button-outline" aria-label={project.id === "destinos" ? "Conheça o FAMTOUR New Wed Destinos" : `Fale com a equipe sobre New Wed ${project.name}`}>
+                    {project.id === "destinos" ? "Conheça o FAMTOUR" : "Fale com a equipe"}
+                  </a>
                 </div>
               </div>
             </article>
@@ -119,7 +109,7 @@ function HomeContent() {
         </div>
       </section>
 
-      <section className="nw-story" aria-labelledby="nw-story-title">
+      <section id="sobre" className="nw-story" aria-labelledby="nw-story-title">
         <div className="nw-story-image">
           <img src={cindyImage.src} alt="Cindy Noel, idealizadora do Grupo New Wed" loading="lazy" />
         </div>
@@ -127,16 +117,16 @@ function HomeContent() {
           <div>
             <h2 id="nw-story-title">Por trás do New Wed</h2>
             <p>Idealizado por Cindy Noel, o Grupo New Wed une visão criativa, experiência em live marketing, atuação estratégica no mercado de casamentos, eventos e turismo no Nordeste.</p>
-            <Link href="/sobre" className="nw-button nw-button-dark">Conheça nossa história</Link>
+            <a href="#contato" className="nw-button nw-button-dark">Fale com nossa equipe</a>
           </div>
         </div>
       </section>
 
-      <section className="nw-closing" aria-labelledby="nw-closing-title">
+      <section id="contato" className="nw-closing" aria-labelledby="nw-closing-title">
         <span className="nw-quote-mark" aria-hidden="true">“</span>
         <div className="nw-closing-copy">
           <h2 id="nw-closing-title">Seja como for,<br />quem faz a festa é o amor.</h2>
-          <Link href="/contato" className="nw-button nw-button-light-outline">Fale conosco</Link>
+          <a href={WHATSAPP_URL} className="nw-button nw-button-light-outline" target="_blank" rel="noopener noreferrer">Fale conosco</a>
         </div>
         <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="nw-social" aria-label="Instagram do Grupo New Wed"><Instagram size={23} strokeWidth={1.5} /></a>
       </section>

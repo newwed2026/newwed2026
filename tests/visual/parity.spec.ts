@@ -40,17 +40,12 @@ function blockMeanAbsoluteError(expected: PNG, received: PNG, blockSize = 4) {
   return totalError / blockCount;
 }
 const cases = [
-  ["institucional-sobre","http://127.0.0.1:5174/sobre","/sobre"],
-  ["institucional-feira","http://127.0.0.1:5174/feira","/feira"],
-  ["institucional-destinos","http://127.0.0.1:5174/destinos","/destinos"],
-  ["institucional-guia","http://127.0.0.1:5174/guia","/guia"],
-  ["institucional-workshop","http://127.0.0.1:5174/workshop","/workshop"],
-  ["institucional-contato","http://127.0.0.1:5174/contato","/contato"],
   ["institucional-404","http://127.0.0.1:5174/rota-inexistente","/rota-inexistente"],
   ["famtour-home","http://127.0.0.1:5173/","/famtour"],
   ["famtour-edicao","http://127.0.0.1:5173/edicoes/fernando-de-noronha-2026","/famtour/edicoes/fernando-de-noronha-2026"],
   ["famtour-inscricao","http://127.0.0.1:5173/inscricao/famtour-rn-abril-2027","/famtour/inscricao/famtour-rn-abril-2027"],
 ] as const;
+const institutionalSections = ["sobre", "feira", "destinos", "guia", "workshop", "contato"] as const;
 const viewports = [
   ["mobile",390,844],
   ["tablet",768,1024],
@@ -94,6 +89,48 @@ for (const [viewportName,width,height] of viewports) {
       await expect(page.getByRole("navigation",{ name:"Navegação principal mobile" }).getByRole("link",{ name:"Contato" })).toBeVisible();
     }
   });
+  test(`${viewportName} · navegação institucional atual`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("http://localhost:4173/");
+    await page.waitForLoadState("networkidle");
+    for (const section of institutionalSections) {
+      if (viewportName === "mobile") await page.locator(".nw-mobile-menu summary").click();
+      const menu = page.getByRole("navigation", { name: viewportName === "mobile" ? "Navegação principal mobile" : "Navegação principal", exact: true });
+      await menu.locator(`a[href="#${section}"]`).click();
+      await expect(page).toHaveURL(`http://localhost:4173/#${section}`);
+      await expect(page.locator(`.nw-home #${section}`)).toBeInViewport();
+      if (viewportName === "mobile") await expect(page.locator(".nw-mobile-menu")).not.toHaveAttribute("open");
+    }
+    await page.locator("#destinos").getByRole("link").click();
+    await expect(page).toHaveURL("http://localhost:4173/famtour");
+    await expect(page.getByRole("heading", { name: "FAMTOUR NORDESTE EDIÇÃO 2027" })).toBeVisible();
+  });
+
+  test(`${viewportName} · URLs institucionais antigas`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (const section of institutionalSections) {
+      await page.goto(`http://localhost:4173/${section}`);
+      await expect(page).toHaveURL(`http://localhost:4173/#${section}`);
+      await expect(page.locator(".nw-home")).toBeVisible();
+      await expect(page.locator(`.nw-home #${section}`)).toBeInViewport();
+    }
+  });
+
+  test(`${viewportName} · navbar FAMTOUR para o institucional atual`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (const section of institutionalSections) {
+      await page.goto("http://localhost:4173/famtour");
+      await page.waitForLoadState("networkidle");
+      if (viewportName === "mobile") await page.getByRole("button", { name: "Abrir menu" }).click();
+      await page.getByRole("navigation").locator(`a[href="/#${section}"]:visible`).click();
+      await expect(page).toHaveURL(`http://localhost:4173/#${section}`);
+      await expect(page.locator(`.nw-home #${section}`)).toBeInViewport();
+    }
+  });
+
   for (const [name,source,target] of cases) {
     test(`${viewportName} · ${name}`,async ({ page }) => {
       await page.setViewportSize({ width,height });

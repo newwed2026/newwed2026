@@ -301,3 +301,5 @@
   .nw-closing { flex-wrap: wrap; }
   .nw-social { border-left: 0; }
 }
+
+.nw-home [id] { scroll-margin-top: 24px; }

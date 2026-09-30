@@ -107,3 +107,7 @@ Em 2026-09-30, o usuário autorizou a publicação do site na conta Cloudflare N
 ## D-027 — Domínio institucional preservando DNS legado
 
 Em 2026-09-30, o usuário solicitou conectar o domínio existente `newwed.com.br`. O apex possui A proxied para `70.38.123.170`, www é CNAME proxied para o apex e mail é CNAME DNS-only para o apex. Usar rotas Workers específicas `newwed.com.br/*` e `www.newwed.com.br/*` preserva esses destinos DNS, os registros de e-mail e os demais serviços do servidor. O Worker atende integralmente os caminhos web com seus assets; falhas permanecem fechadas, sem fallback para o site antigo. As duas rotas ficam no ambiente production do Wrangler para os deploys automáticos.
+
+## D-028 — Institucional atual com navegação por seções
+
+O usuário retirou o institucional escuro em 2026-09-30. Os menus do institucional branco passam a navegar por âncoras sobre, feira, destinos, guia, workshop e contato. A navbar e o rodapé da FAMTOUR mantêm seus rótulos e abrem essas seções do institucional atual. As seis URLs antigas redirecionam para as respectivas âncoras, sem renderizar o conteúdo retirado. Destinos conecta a landing FAMTOUR; as demais chamadas de projetos conduzem ao contato atual. A composição da home e a operação da landing/admin são preservadas.
